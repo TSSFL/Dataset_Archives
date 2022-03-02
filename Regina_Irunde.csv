@@ -1,6 +1,6 @@
 ,,,,
 ,,,,
-Time (min),As final (mg/L),Volume (ml),dosage (g),pH
+Time_min,con_mg_L,Volume_ml,dosage_g,pH
 0,5.266,20,0.01,6.8
 5,4.2333,20,0.01,8.17
 15,4.1393,20,0.01,11.58
