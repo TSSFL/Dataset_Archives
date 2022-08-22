@@ -9,7 +9,7 @@ textstr = 'Created at www.tssfl.com'
 sns.set_style('dark') # darkgrid, white grid, dark, white and ticks
 #plt.style.use('ggplot')
 
-df = pd.read_csv('https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/chem_data.csv', skiprows=1) #error_bad_lines=False
+df = pd.read_csv('https://github.com/TSSFL/Dataset_Archives/main/chem_data.csv', skiprows=1) #error_bad_lines=False
 df.columns = df.columns.str.strip()
 
 print(df.keys())
