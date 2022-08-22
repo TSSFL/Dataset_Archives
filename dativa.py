@@ -1,4 +1,5 @@
-# import libraries
+import requests
+import io
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -9,7 +10,13 @@ textstr = 'Created at www.tssfl.com'
 sns.set_style('dark') # darkgrid, white grid, dark, white and ticks
 #plt.style.use('ggplot')
 
-df = pd.read_csv('chem_data', skiprows=1) #error_bad_lines=False
+url = 'https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/chem_data.csv' # Make sure the url is the raw version of the file on GitHub
+download = requests.get(url).content
+
+#Reading the downloaded content and turning it into a pandas dataframe
+
+df = pd.read_csv(io.StringIO(download.decode('utf-8')), skiprows=1)  #error_bad_lines=False
+
 df.columns = df.columns.str.strip()
 
 print(df.keys())
