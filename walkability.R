@@ -1,22 +1,35 @@
 #Normalized dataset on dropbox https://www.dropbox.com/s/yv707v7uhjyj9ni/Normalized_Dataframe.csv?dl=1
 #Normal dataset https://www.dropbox.com/s/8imxwa4l9p44d46/Normal_Dataframe.csv?dl=1
-require(foreign)
-require(ggplot2)
-require(MASS)
-require(Hmisc)
-require(reshape)
-library(GGally)
-#Tables
-library(gt)
-library(gtExtras)
-library(tidyverse)
-library(glue)
 
-library(rmarkdown)
+# Only two packages are actually used by this script: MASS for polr() and rms
+# for lrm(). foreign, ggplot2, Hmisc, reshape, GGally, gt, gtExtras, tidyverse,
+# glue and rmarkdown were loaded here but never called - and one of them being
+# absent (gtExtras) was enough to stop the whole script before it read any data.
+if (!requireNamespace("MASS", quietly = TRUE)) {
+  stop("R package 'MASS' is required but not available here.", call. = FALSE)
+}
+library(MASS)
+
+# The caller sets ivar before sourcing, e.g.
+#   assign("ivar", "Totbususage")
+# Response variables in this dataset:
+#   "PT.Buses..1strip."  "PT.Buses..Ltrip."  "TotWalk..1stTrp."
+#   "Totbususage"        "Tot_Walk"
+if (!exists("ivar")) {
+  stop("Set 'ivar' before sourcing this script, e.g. ivar <- \"data.QC31\"", call. = FALSE)
+}
 
 #Normalized dataframe
 df = read.csv("https://www.dropbox.com/s/yv707v7uhjyj9ni/Normalized_Dataframe.csv?dl=1")
 df <- head(df, -1)
+
+# Fail here with a readable message rather than inside lapply() further down.
+if (!ivar %in% names(df)) {
+  stop(sprintf("ivar '%s' is not a column of the dataset.\n  Response variables available: %s",
+               ivar, paste(setdiff(names(df), grep("^data\\.QC", names(df), value = TRUE)),
+                           collapse = ", ")), call. = FALSE)
+}
+
 attach(df)
 
 tab1 = lapply(df[, c(ivar, "data.QC1", "data.QC2", "data.QC3", "data.QC4", "data.QC5", "data.QC6",
@@ -74,47 +87,46 @@ print("Odds ratios including CI:")
 oddr2 = exp(cbind(OR = coef(olm), ci))
 print(oddr2)
  
-print("Modeling with Second approach -- RMS")
-library(rms)
-Y <- cbind(get(ivar))
-#print(summary(Y))
- 
-X <- cbind(data.QC1, data.QC2, data.QC3, data.QC4, data.QC5, data.QC6,
-              data.QC7, data.QC8,  data.QC9, data.QC10 , data.QC11, data.QC12, data.QC13,
-              data.QC14, data.QC15, data.QC16, data.QC17, data.QC18, data.QC19, data.QC20,
-              data.QC21, data.QC22, data.QC23, data.QC24, data.QC25, data.QC26, data.QC27,
-              data.QC28, data.QC29, data.QC30)
+print("Modeling with Second approach")
+
 Xvar <- c("data.QC1", "data.QC2", "data.QC3", "data.QC4", "data.QC5", "data.QC6",
-              "data.QC7", "data.QC8",  "data.QC9", "data.QC10" ,  "data.QC11", "data.QC12", "data.QC13",
-              "data.QC14", "data.QC15", "data.QC16", "data.QC17", "data.QC18", "data.QC19", "data.QC20",
-              "data.QC21",   "data.QC22",  "data.QC23", "data.QC24",  "data.QC25",  "data.QC26", "data.QC27",
-              "data.QC28", "data.QC29", "data.QC30")
- 
-#Descriptive Statistics
+          "data.QC7", "data.QC8", "data.QC9", "data.QC10", "data.QC11", "data.QC12",
+          "data.QC13", "data.QC14", "data.QC15", "data.QC16", "data.QC17", "data.QC18",
+          "data.QC19", "data.QC20", "data.QC21", "data.QC22", "data.QC23", "data.QC24",
+          "data.QC25", "data.QC26", "data.QC27", "data.QC28", "data.QC29", "data.QC30")
+
+Y <- get(ivar)
+X <- df[, Xvar]
+
 print("Summary Y:")
 print(summary(Y))
- 
-print("Summary X:")
-print(summary(X))
- 
+
 print("Table Y:")
 print(table(Y))
- 
-print("Ordered logit model coefficients:")
-ddist <- datadist(Xvar)
-options <- (datadist='ddist')
- 
-ologit <- lrm(Y~X, data=df)
-print(ologit)
- 
-#Ordered logit model odds ratio
-#summary(ologit) #Complains of error
- 
-print("Ordered logit model predicted probabilities:")
+
+print("Summary X:")
+print(summary(X))
+
+if (requireNamespace("rms", quietly = TRUE)) {
+  # Preferred route when rms is installed: lrm() gives the full model report.
+  library(rms)
+  ddist <- datadist(X)
+  options(datadist = "ddist")
+  ologit <- lrm(as.factor(Y) ~ ., data = cbind(Y = Y, X))
+  print("Ordered logit model (rms::lrm):")
+  print(ologit)
+  fitted_probs <- predict(ologit, newdata = df, type = "fitted.ind")
+} else {
+  # rms is absent in this environment, so the same quantities are produced from
+  # the MASS model already fitted above rather than abandoning the analysis.
+  message("Package 'rms' not available - using the MASS model for the same quantities.")
+  fitted_probs <- predict(olm, newdata = df, type = "probs")
+}
+
+print("Predicted probabilities at the predictor means:")
 xmeans <- colMeans(X)
-new_data = data.frame(t(xmeans))
-print(new_data)
- 
-print("Model fitting:")
-fitted <- predict(ologit, newdata = df, type = "fitted.ind")
-colMeans(fitted)
+new_data <- as.data.frame(t(xmeans))
+print(predict(olm, newdata = new_data, type = "probs"))
+
+print("Mean predicted probability per response category across the sample:")
+print(colMeans(fitted_probs))
