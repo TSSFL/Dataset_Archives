@@ -192,15 +192,16 @@ plt.show()
 order = (df.groupby("Scientific name")["Citation"].max()
            .sort_values(ascending=False).index.tolist())
 height = max(6.0, 0.30 * len(order) + 1.8)
-# Marker size has to grow with the canvas. At s=6 on a figure this tall the
-# dots were specks; s=13 keeps them readable without merging neighbours,
-# and aspect 1.05 stops the 1-10 citation range being stretched so wide
-# that each row reads as a lone dot adrift.
+# Marker size: use seaborn's `size` (diameter in points), NOT `s`. An `s`
+# falls through to matplotlib's scatter, where it means *area* in points
+# squared - so the original s=6 drew a 2.8pt dot, which is the speck you
+# see on a figure this tall. aspect 1.05 also stops the 1-10 citation
+# range being stretched so wide that each row reads as a lone dot adrift.
 g = sns.catplot(data=df, x="Citation", y="Scientific name",
                 hue="Ailment cured", kind="swarm", order=order,
                 palette=cat_colors(df["Ailment cured"]),
-                height=height, aspect=1.05, s=13, legend_out=True,
-                linewidth=0.6, edgecolor=SURFACE)
+                height=height, aspect=1.05, size=11, legend_out=True,
+                linewidth=0.8, edgecolor=SURFACE)
 g.set_axis_labels("Times cited", "")
 # The longest binomial runs to ~45 characters, so the label column needs
 # more than a third of the width or the first words are cut off.
