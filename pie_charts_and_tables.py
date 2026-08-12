@@ -124,9 +124,6 @@ print("Merged_ChartsXX.pdf  - %d pie charts "
 
 #Create and Merge Tables
 
-#Call the PdfFileMerger
-mergedTables = PdfFileMerger()
-
 #https://caendkoelsch.wordpress.com/2019/05/10/merging-multiple-pdfs-into-a-single-pdf/
 from pretty_html_table import build_table
 import pandas as pd
@@ -136,6 +133,12 @@ from weasyprint import CSS
 from weasyprint import HTML
 
 
+# All 62 tables are collected into one HTML document and rendered once.
+# weasyprint costs roughly 0.4 s to start up per call regardless of how
+# small the table is, so 62 separate write_pdf() calls spent about 25 s
+# doing nothing but starting - enough, on top of the charts, to run the
+# cell out of time before it could write this file. One call, same output.
+parts = []
 for column, i in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
   title = "\n".join(wrap(column.replace("/", " ").replace("_", " "), 40))
   series = df[column].value_counts()
@@ -144,31 +147,25 @@ for column, i in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
   df2.columns.values[0] = title
   df2.columns.values[1] = "Frequency"
 
-  #df2['B'].value_counts(normalize=True) * 100
-  #(df2['B'].value_counts()/df2['B'].count())*100
   df2['Percentage (%)'] = np.round(((df2['Frequency'] /
                 df2['Frequency'].sum()) * 100.0), 2)
-  #print(df2['Percentage (%)'].sum())
   table = "Table %s" % (i+1)
-  #https://stackoverflow.com/questions/48274259/is-there-a-way-to-add-a-title-to-a-dataframe-spanning-across-multiple-columns
   if i == 0:
       textstr = 'Created at TSSFL ODF: www.tssfl.com'
       df2.columns=pd.MultiIndex.from_product([[textstr],df2.columns])
   else:
       df2.columns=pd.MultiIndex.from_product([[table],df2.columns])
   output = build_table(df2, 'green_light', font_size='medium', font_family='Open Sans, sans-serif', text_align='left', width='auto',        index=False, even_color='black', even_bg_color='white')
+  parts.append(output)
 
-  with open("Table.html","w+") as file:
-      file.write(output)
+with open("Table.html", "w+") as file:
+    file.write("\n".join(parts))
 
-  HTML(string=output).write_pdf("./Table_%s.pdf" % i)
+# One page per table, as before.
+page_break = '<div style="page-break-after: always;"></div>'
+HTML(string=page_break.join(parts)).write_pdf("./Merged_TablesXY.pdf")
+print("Merged_TablesXY.pdf  - %d frequency tables" % len(parts))
 
-#Write all the files into a file which is named as shown below
-for fileNumber in range(0, i+1):
-  mergedTables.append(PdfFileReader('Table_' + str(fileNumber) + '.pdf', 'rb'))
-
-mergedTables.write("./Merged_TablesXY.pdf")
-print("Merged_TablesXY.pdf  - %d frequency tables" % (i+1))
 
 #Delete images and pdfs
 #import os
