@@ -286,7 +286,7 @@ def figure(width=10.5, height=6.0, **kw):
 
 
 def finish(fig, title=None, subtitle=None, source=None, site=SITE,
-           legend=None, note=None, left=0.055, right=0.965):
+           legend=None, note=None, left=0.055, right=0.965, gap=None):
     """Reserve the margins, then write into them. Never over the plot.
 
     This is the whole answer to the watermark landing on the data: the bands
@@ -315,6 +315,15 @@ def finish(fig, title=None, subtitle=None, source=None, site=SITE,
     if legend:
         top_in += 0.34
     top_in += 0.18
+
+    # Equal-aspect axes (pies, maps) cannot be shrunk by tight_layout, so
+    # their own titles ride up into the band reserved above them. Reserve
+    # the extra room here rather than leaving the title block to collide.
+    if gap is None:
+        titled = any(a.get_title() for a in fig.axes)
+        fixed = any(a.get_aspect() == 1.0 for a in fig.axes)
+        gap = 0.34 if (titled and fixed) else 0.0
+    top_in += gap
     bottom_in = 0.42 if (source or site or note) else 0.10
     if note:
         bottom_in += 0.22
