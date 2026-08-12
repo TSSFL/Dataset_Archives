@@ -43,6 +43,7 @@ __all__ = [
     "bars", "counts", "grouped_bars", "likert", "donut", "dumbbell",
     "line", "scatter", "heatmap", "distribution", "boxes", "panels",
     "table", "crosstab", "summary", "show_html", "scale_order", "SCALES",
+    "label_bars",
     "PALETTES", "SEQUENTIAL", "DIVERGING", "STATUS", "INK", "INK_2",
     "MUTED", "GRID", "BAND", "SURFACE", "SITE",
 ]

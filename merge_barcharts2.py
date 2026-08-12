@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Automated chart report - one merged PDF from a survey, in one pass.
 
-Nine questions about the professional communities teachers take part in,
-each broken down two ways (by gender, and by teaching subject), collected
+The professional-community questions from a teachers survey, each
+broken down two ways (by gender, and by teaching subject), collected
 into a single PDF ready to send.
 
 What changed from the earlier version, and why:
@@ -22,7 +22,7 @@ What changed from the earlier version, and why:
   question being charted. Every percentage was therefore too small, by a
   different amount on each page. It is now the answered count, stated on
   the page so the reader can see what the share is a share of.
-* A summary page now leads the report: nine questions on one chart is the
+* A summary page now leads the report: every question on one chart is the
   view that answers "which communities do teachers actually use", which no
   amount of paging through individual charts gives you.
 """
@@ -52,7 +52,7 @@ url = ("https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/"
 df = pd.read_csv(io.StringIO(requests.get(url).content.decode("utf-8")))
 df = df.replace(r"_", " ", regex=True)
 
-# The nine "do you take part in ..." questions, and the two ways of
+# The "do you take part in ..." questions, and the two ways of
 # splitting them. Selected by name rather than by position, so inserting a
 # column upstream no longer silently charts the wrong thing.
 GROUP = "group_ms4ff82/Indicate_whether_you_ommunities_or_groups/"
@@ -60,7 +60,17 @@ questions = [c for c in df.columns if c.startswith(GROUP)]
 splits = ["group_fy3xs85/Gender_of_participant",
           "group_fy3xs85/Teaching_subjects"]
 
-# Short readable names for the nine activities.
+# Teaching subjects is free-ish text and runs to more than a dozen
+# combinations. More levels than there are distinguishable colours makes an
+# unreadable legend - and silently truncates the palette, which is a
+# KeyError inside seaborn rather than a bad-looking chart. Fold the tail.
+for col in splits:
+    counts_ = df[col].value_counts()
+    if len(counts_) > 6:
+        keep_ = counts_.nlargest(6).index
+        df[col] = df[col].where(df[col].isin(keep_), "Other")
+
+# Short readable names for the activities.
 def short(col):
     return wrap(tidy(col).replace(" u", "").replace(" e", "").strip(), 30)
 
@@ -97,7 +107,14 @@ finish(fig_summary, "Which professional communities teachers take part in",
 # =======================================================================
 #  One page per question and split
 # =======================================================================
-pages = [fig_summary]
+# Each page is written and closed as it is made. Holding 21 figures open
+# to merge them at the end trips matplotlib's "more than 20 figures"
+# warning, and the warning prints in the cell output.
+pdf = PdfPages(OUT)
+pdf.savefig(fig_summary)
+plt.close(fig_summary)
+pages = 1
+
 for q in questions:
     for split in splits:
         sub = df[[q, split]].dropna()
@@ -105,13 +122,16 @@ for q in questions:
             continue                       # nothing to draw, so draw nothing
         answered = len(sub)
         levels = list(sub[split].value_counts().index)
-        cols = dict(zip(levels, colors(min(len(levels), 8))))
+        cols = dict(zip(levels, colors(len(levels))))
 
         fig, ax = plt.subplots(figsize=(11.0, 5.6))
         sns.countplot(data=sub, x=q, hue=split, palette=cols,
                       order=scale_order(sub[q]), width=0.7, ax=ax)
         ax.set_xlabel("")
         ax.set_ylabel("Number of teachers")
+        # set_xticks first: setting labels alone warns about a non-fixed
+        # locator, and the warning prints above the figure.
+        ax.set_xticks(ax.get_xticks())
         ax.set_xticklabels([wrap(t.get_text(), 18)
                             for t in ax.get_xticklabels()])
         if ax.legend_:
@@ -123,17 +143,12 @@ for q in questions:
                f"Split by {tidy(split).lower()}.  {answered} of {len(df)} "
                f"teachers answered this question.",
                legend=list(cols.items())[:6], source=SRC)
-        pages.append(fig)
-
-# =======================================================================
-#  Write every page into one PDF, in a single pass
-# =======================================================================
-with PdfPages(OUT) as pdf:
-    for fig in pages:
         pdf.savefig(fig)
         plt.close(fig)
+        pages += 1
 
-print(f"Wrote {OUT} - {len(pages)} pages "
+pdf.close()
+print(f"Wrote {OUT} - {pages} pages "
       f"({len(questions)} questions x {len(splits)} splits, plus a summary)")
 
 # Show the summary on screen as well, so the cell is not silent.
