@@ -67,8 +67,12 @@ ax.spines["bottom"].set_color(GRID)
 # the rows arrive in.
 depth_to_year = dict(zip(df[DEPTH], df[YEAR]))
 ticks = df[DEPTH][::4].tolist()          # every fourth level, not all thirty
-if df[DEPTH].iloc[-1] not in ticks:
-    ticks.append(df[DEPTH].iloc[-1])
+deepest = df[DEPTH].iloc[-1]
+# Only add the bottom of the core if it will not sit on top of the tick
+# above it - 87 and 90 are one step apart and their labels collide.
+step = (df[DEPTH].iloc[-1] - df[DEPTH].iloc[0]) / max(len(ticks), 1)
+if deepest not in ticks and deepest - ticks[-1] > step * 0.5:
+    ticks.append(deepest)
 
 ax.set_yticks(ticks)
 ax2 = ax.twinx()
@@ -81,11 +85,19 @@ for side in ("top", "left", "bottom"):
 ax2.spines["right"].set_color(GRID)
 ax2.tick_params(length=0)
 
-first_year = depth_to_year[max(depth_to_year)]
-finish(fig, "Microplastics appear in the core from the 1960s and rise sharply",
-       f"Concentration by depth, with each level dated. Nothing is detected "
-       f"below the layer dated {first_year}; the surface layer carries the "
-       f"highest load of the whole core.",
+# Read the first-appearance layer off the data rather than asserting it.
+detected = df[df[MPS] > 0]
+onset_depth = detected[DEPTH].max()
+onset_year = int(depth_to_year[onset_depth])
+surface_year = int(depth_to_year[df[DEPTH].min()])
+peak = int(df[MPS].max())
+finish(fig,
+       f"Microplastics first appear around {onset_year} and rise steeply "
+       f"toward the surface",
+       f"Concentration by depth, with each level dated. Every layer below "
+       f"{onset_depth} cm - dated {onset_year} and earlier - reads zero; the "
+       f"{surface_year} surface layer carries the core's highest load at "
+       f"{peak} particles per kg.",
        source="Source: TSSFL sediment core analysis.")
 plt.show()
 
