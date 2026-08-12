@@ -63,9 +63,19 @@ j = 67
 # of the cell running out of time before it can write the merged file.
 SHOW = [1, 2, 3, 10, 25, 40]
 SHOW_ALL = False
-SKIP = {0, 50, 60, 61}          # columns that are not worth charting
+# Free-text columns - 26, 32, 95 and 158 distinct answers. A pie needs
+# categories, not sentences, so these are charted by nobody. They still get
+# a frequency table further down, which is the right form for them.
+SKIP = {0, 50, 60, 61}
 
 for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
+  if k in SKIP:
+      # These four are free text: 26, 32, 95 and 158 distinct answers. They
+      # were already excluded from the merged PDF, but the figure was built
+      # and written to disk first and only then discarded - and drawing a
+      # 158-slice pie, measuring 158 labels for bbox_inches='tight', is
+      # what used up the cell's time budget. Skip before building.
+      continue
   # 11 x 8.5 rather than 8 x 6. The old size was also why "Tight layout not
   # applied - the left and right margins cannot be made large enough" kept
   # appearing: a long slice label simply had nowhere to go.
@@ -88,7 +98,7 @@ for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
   ax1.set_position([0.08, 0.06, 0.84, 0.78])   # room for title and labels
   plt.gcf().text(0.02, 0.94, textstr, fontsize=14, color='green')
   plt.savefig("./chart_%s.pdf" % (k), bbox_inches='tight')
-  if k not in SKIP and (SHOW_ALL or k in SHOW):
+  if SHOW_ALL or k in SHOW:
       plt.show()
   plt.close(fig)      # see note above: releases the figure straight away
 
