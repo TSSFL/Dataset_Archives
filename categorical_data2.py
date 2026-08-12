@@ -60,10 +60,32 @@ df["Ailment cured"] = df["Ailment cured"].replace(
     "Gonorrhoea, syphilis", "Gonorrhoea & Syphilis")
 
 
+
+def fold_tail(series, keep=7, other="Other"):
+    """Keep the commonest levels, gather the rest into one.
+
+    "Part used" has ten levels, several of them single records ("Barks",
+    "Bark, Roots", "Leaves, Roots"). Ten needs more colours than can be
+    told apart, and the rare ones are invisible anyway - so the tail is
+    named honestly rather than given a colour nobody can distinguish.
+    """
+    top = series.value_counts().nlargest(int(keep)).index
+    return series.where(series.isin(top), other)
+
+
 def cat_colors(series):
-    """One colour per level of a categorical column, in a stable order."""
-    levels = list(pd.unique(series.dropna()))
+    """One colour per level of a categorical column, in a stable order.
+
+    Ordered by frequency so the commonest level always takes slot 1, which
+    keeps colours stable between charts of the same variable.
+    """
+    levels = list(series.value_counts().index)
     return dict(zip(levels, colors(len(levels), "vivid")))
+
+# Ten levels of "Part used" cannot be told apart by colour; fold the rare
+# ones so every legend entry is a colour the reader can actually match.
+for frame in (data, df):
+    frame["Part used"] = fold_tail(frame["Part used"], keep=7)
 
 
 # =======================================================================
