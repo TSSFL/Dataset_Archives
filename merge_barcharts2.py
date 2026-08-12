@@ -70,9 +70,16 @@ for col in splits:
         keep_ = counts_.nlargest(6).index
         df[col] = df[col].where(df[col].isin(keep_), "Other")
 
-# Short readable names for the activities.
 def short(col):
-    return wrap(tidy(col).replace(" u", "").replace(" e", "").strip(), 30)
+    """A readable title for one activity column.
+
+    KoBo truncates long field names mid-word, so this arrives as
+    "School wide structur unities PLCs groups". Leave the truncation
+    visible rather than trying to patch it up - an earlier version
+    stripped the stray " u" and " e" fragments and produced
+    "structurnities", which is worse than the honest gap.
+    """
+    return wrap(tidy(col), 42)
 
 
 # =======================================================================
