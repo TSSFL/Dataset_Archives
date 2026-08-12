@@ -119,21 +119,24 @@ plt.show()
 # =======================================================================
 #  2. Violin and boxen - the same comparison, more of the distribution
 # =======================================================================
+# Split by growth form only. Adding "Part used" as a hue divides 37 records
+# across six forms and eight parts, leaving one or two points per cell - the
+# violins then collapse to flat lines and the boxen boxes to single ticks.
+# A density estimate needs points to estimate from; this is what having them
+# looks like.
+gf_cols = cat_colors(data["Growth form"])
 fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.8))
-sns.violinplot(data=data, x="Citation", y="Growth form", hue="Part used",
-               palette=cat_colors(data["Part used"]), ax=axes[0],
-               density_norm="width", cut=0, linewidth=1)
-axes[0].set_title("Violin: full distribution", fontsize=12.5)
-axes[0].legend_.remove()
-sns.boxenplot(data=data, x="Citation", y="Growth form", hue="Part used",
-              palette=cat_colors(data["Part used"]), ax=axes[1],
-              linewidth=0.8)
+sns.violinplot(data=data, x="Citation", y="Growth form", hue="Growth form",
+               palette=gf_cols, legend=False, ax=axes[0],
+               density_norm="width", cut=0, linewidth=1, inner="quart")
+axes[0].set_title("Violin: the shape of the distribution", fontsize=12.5)
+sns.boxenplot(data=data, x="Citation", y="Growth form", hue="Growth form",
+              palette=gf_cols, legend=False, ax=axes[1], linewidth=0.8)
 axes[1].set_title("Boxen: the tails, in detail", fontsize=12.5)
-axes[1].legend_.remove()
 finish(fig, "Two ways of showing the same distribution",
-       "A violin shows the density; a boxen chart shows the quantiles the "
-       "box plot hides.",
-       legend=list(cat_colors(data["Part used"]).items())[:6], source=SRC)
+       "A violin shows the density; a boxen chart shows the quantiles a box "
+       "plot hides. Bulb and Succulent hold a single record each, so neither "
+       "form has anything to show for them.", source=SRC)
 plt.show()
 
 # =======================================================================

@@ -298,12 +298,19 @@ def finish(fig, title=None, subtitle=None, source=None, site=SITE,
     """
     H, W = fig.get_figheight(), fig.get_figwidth()
 
+    # Wrap the title block to the width actually available, or a long
+    # subtitle runs off the right edge and loses its last words.
+    avail_in = max(2.0, (right - left) * W)
+    title_lines = (textwrap.wrap(title, int(avail_in * 8.6)) if title else [])
+    sub_lines = (textwrap.wrap(subtitle, int(avail_in * 12.4))
+                 if subtitle else [])
+
     # Band heights in inches, so they do not change with figure size.
     top_in = 0.16                                  # breathing room
     if title:
-        top_in += 0.14 + 0.34                      # accent rule + title
+        top_in += 0.14 + 0.34 * len(title_lines)   # accent rule + title
     if subtitle:
-        top_in += 0.28
+        top_in += 0.24 * len(sub_lines)
     if legend:
         top_in += 0.34
     top_in += 0.18
@@ -325,13 +332,17 @@ def finish(fig, title=None, subtitle=None, source=None, site=SITE,
                                  facecolor=palette()[0], edgecolor="none",
                                  transform=fig.transFigure))
         y -= (0.14 + 0.30) / H
-        fig.text(left, y, title, fontsize=16.5, fontweight="bold",
-                 color=INK, va="top")
-        y -= 0.06 / H
+        for ln in title_lines:
+            fig.text(left, y, ln, fontsize=16.5, fontweight="bold",
+                     color=INK, va="top")
+            y -= 0.34 / H
+        y += 0.34 / H - 0.06 / H
     if subtitle:
         y -= 0.26 / H
-        fig.text(left, y, subtitle, fontsize=11.5, color=INK_2, va="top")
-        y -= 0.04 / H
+        for ln in sub_lines:
+            fig.text(left, y, ln, fontsize=11.5, color=INK_2, va="top")
+            y -= 0.24 / H
+        y += 0.24 / H - 0.04 / H
     if legend:
         y -= 0.30 / H
         handles = []
