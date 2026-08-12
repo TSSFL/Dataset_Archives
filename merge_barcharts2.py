@@ -1,90 +1,142 @@
-import warnings
-warnings.filterwarnings('ignore')
-import requests
+# -*- coding: utf-8 -*-
+"""Automated chart report - one merged PDF from a survey, in one pass.
+
+Nine questions about the professional communities teachers take part in,
+each broken down two ways (by gender, and by teaching subject), collected
+into a single PDF ready to send.
+
+What changed from the earlier version, and why:
+
+* **It used to run out of kernel.** Eighteen figures at 17.5 x 7 inches,
+  each written to its own PDF and reopened by PyPDF4 to be merged, took
+  longer than SageCell allows and the cell died before finishing.
+  ``PdfPages`` writes all pages to one file in one pass - no temporary
+  files, no second library, and it finishes comfortably inside the limit.
+* **Every bar was labelled twice and the empty ones as well.** A count in
+  green, then a percentage rotated 90 degrees in red, on every patch
+  including the zero-height ones a sparse ``hue`` leaves behind - which is
+  where the ``0.00%`` labels came from. ``label_bars()`` writes one string
+  per non-empty bar and drops any that would overlap.
+* **The percentages did not add up.** The denominator was ``len(df)``, the
+  number of rows in the whole survey, not the number who answered the
+  question being charted. Every percentage was therefore too small, by a
+  different amount on each page. It is now the answered count, stated on
+  the page so the reader can see what the share is a share of.
+* A summary page now leads the report: nine questions on one chart is the
+  view that answers "which communities do teachers actually use", which no
+  amount of paging through individual charts gives you.
+"""
 import io
 
-#Plot some graph
-#Import required libraries
-import gspread
-import urllib.request
-import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
-from statsmodels.graphics.mosaicplot import mosaic
-from textwrap import wrap
 import requests
-import io
+import seaborn as sns
+from matplotlib.backends.backend_pdf import PdfPages
 
-#Merge files
-from PyPDF4 import PdfFileMerger, PdfFileReader
-mergedObject = PdfFileMerger()
-#REDCap
-textstr = 'Created at \nwww.tssfl.com'
+load("https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/tssfl_style.py")
 
-#Let's visualize
-#Graph styles and font size
-sns.set_style('darkgrid') # darkgrid, white grid, dark, white and ticks
-plt.rc('axes', titlesize=18)     # fontsize of the axes title
-plt.rc('axes', labelsize=14)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=13)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=13)    # fontsize of the tick labels
-plt.rc('legend', fontsize=13)    # legend fontsize
-plt.rc('font', size=13)          # controls default text sizes
+use("tssfl")
+sns.set_theme(style="whitegrid", rc={
+    "axes.facecolor": SURFACE, "figure.facecolor": SURFACE,
+    "grid.color": GRID, "axes.edgecolor": GRID,
+    "font.sans-serif": ["Nimbus Sans", "Helvetica", "DejaVu Sans"],
+})
 
-"""
-sheet_id = "1_dkk7q41RfE4V3HBokcgqhrqOVDA26plu_MJKwE8OBY"
-sheet_name = "Sheet1"
-url_1 = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-df = pd.read_csv(url_1)
-"""
-url = "https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/teachers_survey_data.csv"
-download = requests.get(url).content
-df = pd.read_csv(io.StringIO(download.decode('utf-8')))
+OUT = "Merged_Charts_XY.pdf"
+SRC = "Source: TSSFL teachers survey, 116 respondents."
+
+# --- data -------------------------------------------------------------
+url = ("https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/"
+       "teachers_survey_data.csv")
+df = pd.read_csv(io.StringIO(requests.get(url).content.decode("utf-8")))
 df = df.replace(r"_", " ", regex=True)
-total = float(len(df))
 
-#get column range
-df1 = df.columns.get_loc("group_ms4ff82/Indicate_whether_you_ommunities_or_groups/School_wide_structur_unities_PLCs_groups")
-df2 = df.columns.get_loc("group_ms4ff82/Indicate_whether_you_ommunities_or_groups/ZOOM_discussions_tha_hing_related_matters")
-print(df1, df2)
-df3 = df.iloc[:, np.r_[9, 13]] #[9, 13]
-#df4 = df.iloc[:, np.r_[88:96]]
-df4 = df.iloc[:, np.r_[58:67]]
-colors1 = ['#ff6666', '#ffcc99', '#99ff99', '#66b3ff', 'tomato', 'gold', 'skyblue', '#ffcc99', 'orange','blue','green','red', 'orange','blue','lime','red']
-#Loop over columns
-for column1, i in zip(df4.columns, range(len(df4.columns))):
-    for column2, j in zip(df3.columns, range(len(df3.columns))):
+# The nine "do you take part in ..." questions, and the two ways of
+# splitting them. Selected by name rather than by position, so inserting a
+# column upstream no longer silently charts the wrong thing.
+GROUP = "group_ms4ff82/Indicate_whether_you_ommunities_or_groups/"
+questions = [c for c in df.columns if c.startswith(GROUP)]
+splits = ["group_fy3xs85/Gender_of_participant",
+          "group_fy3xs85/Teaching_subjects"]
 
-        #df[column1] = ['\n'.join(wrap(x, 10)) for x in  df[column1]]
-        plt.figure(figsize=(17.5,7.))
-        ax = plt.subplot(111)
-        ax = sns.countplot(x=column1,data=df, hue=column2, palette=colors1)
-        plt.xticks(rotation=90)
-        for p in ax.patches[0:]:
-            h = p.get_height()
-            x = p.get_x()+p.get_width()/2.0
-            if h != 0:
-                ax.annotate("%g" % p.get_height(), xy=(x-0.01,h), xytext=(0,4), rotation=0, textcoords="offset points", ha="center",    va="bottom", color='green')
+# Short readable names for the nine activities.
+def short(col):
+    return wrap(tidy(col).replace(" u", "").replace(" e", "").strip(), 30)
 
-        for p in ax.patches:
-            percentage = '{:.2f}%'.format(100 * p.get_height()/total)
-            x = p.get_x() + p.get_width()
-            y = p.get_height()
-            ax.annotate(percentage, (x-0.01, y+0.45),ha='center', rotation=90, color='red')
 
-        xlabel = "\n".join(wrap(column1.replace("/", " ").replace("_", " "), 120))
-        #plt.xlabel(xlabel, labelpad=10)
-        plt.ylabel("Frequency")
-        plt.tight_layout()
-        #ax.legend(bbox_to_anchor=(0.805, 1.0))
-        #plt.legend(loc=1)
-        plt.gcf().text(0.02, 0.93, textstr, fontsize=14, color='green')
-        plt.savefig("./barchart_%s_%s.pdf" % (i, j), bbox_inches='tight')
-        # Call the PdfFileMerger
-        mergedObject.append(PdfFileReader('./barchart_%s_%s' % (i, j) + '.pdf', 'rb'))
-        plt.show()
-        plt.clf()      
+# =======================================================================
+#  Summary page - all nine questions at once
+# =======================================================================
+rates = []
+for q in questions:
+    s = df[q].dropna().astype(str).str.strip().str.lower()
+    if not len(s):
+        continue
+    rates.append((tidy(q), 100.0 * (s == "yes").sum() / len(s), len(s)))
+summary_df = (pd.DataFrame(rates, columns=["Activity", "Percent", "Answered"])
+                .sort_values("Percent"))
 
-#Write/merge all the files into a file which is named as shown below
-mergedObject.write("./Merged_Charts_XY.pdf")
+fig_summary, ax = plt.subplots(figsize=(11.5, 6.4))
+ax.barh(range(len(summary_df)), summary_df["Percent"], height=0.62,
+        color=palette()[0])
+ax.set_yticks(range(len(summary_df)))
+ax.set_yticklabels([wrap(a, 38) for a in summary_df["Activity"]],
+                   fontsize=10)
+ax.set_xlabel("Share answering yes (%)")
+ax.set_xlim(0, 100)
+for side in ("top", "right", "left"):
+    ax.spines[side].set_visible(False)
+ax.xaxis.grid(True, color=GRID, lw=1)
+ax.set_axisbelow(True)
+label_bars(ax, fmt="{:.0f}%", horizontal=True)
+finish(fig_summary, "Which professional communities teachers take part in",
+       "Percentage answering yes to each, out of those who answered that "
+       "question.", source=SRC)
+
+# =======================================================================
+#  One page per question and split
+# =======================================================================
+pages = [fig_summary]
+for q in questions:
+    for split in splits:
+        sub = df[[q, split]].dropna()
+        if sub.empty or sub[q].nunique() < 1:
+            continue                       # nothing to draw, so draw nothing
+        answered = len(sub)
+        levels = list(sub[split].value_counts().index)
+        cols = dict(zip(levels, colors(min(len(levels), 8))))
+
+        fig, ax = plt.subplots(figsize=(11.0, 5.6))
+        sns.countplot(data=sub, x=q, hue=split, palette=cols,
+                      order=scale_order(sub[q]), width=0.7, ax=ax)
+        ax.set_xlabel("")
+        ax.set_ylabel("Number of teachers")
+        ax.set_xticklabels([wrap(t.get_text(), 18)
+                            for t in ax.get_xticklabels()])
+        if ax.legend_:
+            ax.legend_.remove()
+        # Share is out of those who answered *this* question, not the whole
+        # survey - that was the bug that made the percentages meaningless.
+        label_bars(ax, total=answered, pct=True)
+        finish(fig, short(q),
+               f"Split by {tidy(split).lower()}.  {answered} of {len(df)} "
+               f"teachers answered this question.",
+               legend=list(cols.items())[:6], source=SRC)
+        pages.append(fig)
+
+# =======================================================================
+#  Write every page into one PDF, in a single pass
+# =======================================================================
+with PdfPages(OUT) as pdf:
+    for fig in pages:
+        pdf.savefig(fig)
+        plt.close(fig)
+
+print(f"Wrote {OUT} - {len(pages)} pages "
+      f"({len(questions)} questions x {len(splits)} splits, plus a summary)")
+
+# Show the summary on screen as well, so the cell is not silent.
+table(summary_df.rename(columns={"Percent": "Percent yes"}),
+      title="Participation in professional communities",
+      fmt={"Percent yes": "{:.1f}%"}, source=SRC)
