@@ -192,12 +192,19 @@ plt.show()
 order = (df.groupby("Scientific name")["Citation"].max()
            .sort_values(ascending=False).index.tolist())
 height = max(6.0, 0.30 * len(order) + 1.8)
+# Marker size has to grow with the canvas. At s=6 on a figure this tall the
+# dots were specks; s=13 keeps them readable without merging neighbours,
+# and aspect 1.05 stops the 1-10 citation range being stretched so wide
+# that each row reads as a lone dot adrift.
 g = sns.catplot(data=df, x="Citation", y="Scientific name",
                 hue="Ailment cured", kind="swarm", order=order,
                 palette=cat_colors(df["Ailment cured"]),
-                height=height, aspect=1.55, s=6, legend_out=True)
+                height=height, aspect=1.05, s=13, legend_out=True,
+                linewidth=0.6, edgecolor=SURFACE)
 g.set_axis_labels("Times cited", "")
-g.figure.subplots_adjust(top=0.93, left=0.34, right=0.80, bottom=0.08)
+# The longest binomial runs to ~45 characters, so the label column needs
+# more than a third of the width or the first words are cut off.
+g.figure.subplots_adjust(top=0.93, left=0.46, right=0.82, bottom=0.08)
 g.figure.suptitle("Species by number of citations", x=0.02, ha="left",
                   fontsize=15.5, fontweight="bold", color=INK)
 g.figure.text(0.02, 0.015, SRC + "   " + SITE, fontsize=9.5, color=MUTED)
