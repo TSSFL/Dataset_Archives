@@ -1,334 +1,217 @@
-#Plot some graph
-#Import required libraries
-import gspread
-import urllib.request
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-from statsmodels.graphics.mosaicplot import mosaic
+# -*- coding: utf-8 -*-
+"""Categorical data visualisation - an ethnobotany survey, many ways.
 
-import requests
+A deliberate tour of the categorical plots seaborn offers: box, violin,
+boxen, bar, point, count, strip, swarm, faceted catplot and small
+multiples, on one dataset so the forms can be compared directly.
+
+What changed from the earlier version, and why:
+
+* ``palette=`` was passed without ``hue=`` throughout. Seaborn 0.13 raises a
+  FutureWarning for that on every call - eight of them in the cell output,
+  above the figures, where the audience reads them. Each plot now assigns
+  ``hue`` explicitly and hides the redundant legend.
+* The counts-and-percentages block annotated *every* bar, including the
+  zero-height ones a sparse ``hue`` leaves behind, writing the count and the
+  percentage as two separate rotated annotations. They landed on each other.
+  ``label_bars()`` now writes one string per non-empty bar and drops any
+  label that would overlap one already placed.
+* ``print(total)`` echoed a bare ``37.0`` above a figure.
+* The swarm of scientific names was drawn on a default-sized canvas, so
+  thirty-odd binomials overlapped into an illegible block, and
+  ``plt.tight_layout()`` on a FacetGrid printed "Tight layout not applied".
+  It is now sized from the number of rows, and sorted by citation count.
+* ``sns.barplot(x=df['Growth form'].head(3), y=df['Citation'])`` passed three
+  x values against thirty-odd y values. That is a length mismatch, not a
+  plot; it is now an explicit top-three summary.
+* The "Created at www.tssfl.com" credit was placed inside the axes and sat
+  on the data. ``finish()`` reserves a margin for it.
+
+Load the house style first; everything below uses it for layout and labels.
+"""
 import io
-#REDCap
-textstr = 'Created at \nwww.tssfl.com'
 
-#Let's visualize
-#Graph styles and font size
-sns.set_style('darkgrid') # darkgrid, white grid, dark, white and ticks
-plt.rc('axes', titlesize=18)     # fontsize of the axes title
-plt.rc('axes', labelsize=14)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=13)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=13)    # fontsize of the tick labels
-plt.rc('legend', fontsize=13)    # legend fontsize
-plt.rc('font', size=13)          # controls default text sizes
-"""
-sheet_id = "1pm1mGdRgpitrYQiGqUNSHPdR43e-ZSXCavYr-TcqtwU"
-sheet_name = "Sheet1"
-url_1 = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
-data = pd.read_csv(url_1)
-"""
-url = 'https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/Categorical_data.csv'
-download = requests.get(url).content
-data = pd.read_csv(io.StringIO(download.decode('utf-8')))
+import matplotlib.pyplot as plt
+import pandas as pd
+import requests
+import seaborn as sns
 
-#print(data)
-#Drop first row
-#df = data.drop(labels=0, axis=0)
-#df = data.drop(data.index[0])
-df = data[~data['Ailment cured'].isin(['HIV/AIDS'])]
-#df['Ailment cured'] = df['Ailment cured'].replace({'Gonorrhoea, syphilis':'Gonorrhoea & Syphilis'})
-df["Ailment cured"] = df['Ailment cured'].replace('Gonorrhoea, syphilis', 'Gonorrhoea & Syphilis')
-#print(df)
+load("https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/tssfl_style.py")
 
-#Growth form vs Citation
-plt.figure(figsize=(8,5))
-sns.boxplot(x='Growth form',y='Citation',data=data, palette='rainbow')
+use("vivid")                       # softer than the default, good in print
+PAL = palette("vivid")
+sns.set_theme(style="whitegrid", rc={
+    "axes.facecolor": SURFACE, "figure.facecolor": SURFACE,
+    "grid.color": GRID, "axes.edgecolor": GRID,
+    "font.sans-serif": ["Nimbus Sans", "Helvetica", "DejaVu Sans"],
+})
+
+SRC = "Source: TSSFL ethnobotany survey."
+
+# --- data -------------------------------------------------------------
+url = ("https://raw.githubusercontent.com/TSSFL/Dataset_Archives/main/"
+       "Categorical_data.csv")
+data = pd.read_csv(io.StringIO(requests.get(url).content.decode("utf-8")))
+
+# HIV/AIDS dominates the counts; df is the view without it, used where the
+# smaller categories would otherwise be flattened.
+df = data[~data["Ailment cured"].isin(["HIV/AIDS"])].copy()
+df["Ailment cured"] = df["Ailment cured"].replace(
+    "Gonorrhoea, syphilis", "Gonorrhoea & Syphilis")
+
+
+def cat_colors(series):
+    """One colour per level of a categorical column, in a stable order."""
+    levels = list(pd.unique(series.dropna()))
+    return dict(zip(levels, colors(len(levels), "vivid")))
+
+
+# =======================================================================
+#  1. Box plots - the spread of citations within each category
+# =======================================================================
+fig, axes = plt.subplots(1, 2, figsize=(13.5, 5.6))
+sns.boxplot(data=data, x="Citation", y="Growth form", hue="Growth form",
+            palette=cat_colors(data["Growth form"]), legend=False,
+            width=0.6, ax=axes[0], fliersize=3)
+axes[0].set_title("By growth form", fontsize=12.5)
+sns.boxplot(data=data, x="Citation", y="Part used", hue="Part used",
+            palette=cat_colors(data["Part used"]), legend=False,
+            width=0.6, ax=axes[1], fliersize=3)
+axes[1].set_title("By part used", fontsize=12.5)
+finish(fig, "How often each kind of plant is cited",
+       "Box spans the interquartile range; the line inside it is the median.",
+       source=SRC)
 plt.show()
 
-#Citation vs Growth form
-plt.figure(figsize=(8,5))
-sns.boxplot(x='Citation',y='Growth form',data=data, palette='rainbow')
+# Ailments, with HIV/AIDS removed so the rest are visible.
+fig, ax = plt.subplots(figsize=(11.5, 5.4))
+sns.boxplot(data=df, x="Ailment cured", y="Citation", hue="Ailment cured",
+            palette=cat_colors(df["Ailment cured"]), legend=False,
+            width=0.55, ax=ax, fliersize=3)
+ax.set_xlabel("Ailment cured", labelpad=12)
+finish(fig, "Citations by ailment treated",
+       "HIV/AIDS is excluded here - it dominates the counts and flattens "
+       "everything else.", source=SRC)
 plt.show()
 
-#Citation vs Growth form
-plt.figure(figsize=(8,5))
-sns.boxplot(x='Citation',y='Part used',data=data, palette='rainbow')
-plt.tight_layout() #figure.savefig('myplot.png', bbox_inches='tight')
+# =======================================================================
+#  2. Violin and boxen - the same comparison, more of the distribution
+# =======================================================================
+fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.8))
+sns.violinplot(data=data, x="Citation", y="Growth form", hue="Part used",
+               palette=cat_colors(data["Part used"]), ax=axes[0],
+               density_norm="width", cut=0, linewidth=1)
+axes[0].set_title("Violin: full distribution", fontsize=12.5)
+axes[0].legend_.remove()
+sns.boxenplot(data=data, x="Citation", y="Growth form", hue="Part used",
+              palette=cat_colors(data["Part used"]), ax=axes[1],
+              linewidth=0.8)
+axes[1].set_title("Boxen: the tails, in detail", fontsize=12.5)
+axes[1].legend_.remove()
+finish(fig, "Two ways of showing the same distribution",
+       "A violin shows the density; a boxen chart shows the quantiles the "
+       "box plot hides.",
+       legend=list(cat_colors(data["Part used"]).items())[:6], source=SRC)
 plt.show()
 
-#Citation vs Ailment cured
-plt.figure(figsize=(10,5))
-sns.boxplot(x=df["Ailment cured"],y=df['Citation'],data=df, palette='rainbow')
-plt.xlabel("Ailment cured", labelpad=15)
-plt.tight_layout()
+# =======================================================================
+#  3. Counts - how many records fall in each category
+# =======================================================================
+fig, ax = plt.subplots(figsize=(11.0, 5.6))
+sns.countplot(data=data, x="Growth form", hue="Growth form",
+              palette=cat_colors(data["Growth form"]), legend=False,
+              width=0.62, ax=ax)
+ax.set_ylabel("Number of records")
+label_bars(ax, pct=True)           # one label per bar, collisions dropped
+finish(fig, "Shrubs and trees dominate the records",
+       "Count of records per growth form, with each as a share of the total.",
+       source=SRC)
 plt.show()
 
-#Swarm plot
-fig = plt.gcf()
-fig.set_size_inches(30, 30)
-sns.catplot(x="Citation", y="Scientific name", hue="Ailment cured", kind="swarm", data=df)
-plt.tight_layout()
+# The same split by part used. This cross-tab is sparse, so it is a
+# heatmap: as grouped bars most columns are empty and the bars become
+# hairlines with unreadable labels stacked above them.
+ct = pd.crosstab(data["Growth form"], data["Part used"])
+ax = heatmap(ct, fmt="{:.0f}", order=False)
+finish(ax.figure, "Which part is used, by growth form",
+       "Number of records in each combination. Most combinations do not "
+       "occur, which is why this is a table rather than a bar chart.",
+       source=SRC)
 plt.show()
 
-
-#Adding hue
-#Citation vs Growth form
-plt.figure(figsize=(8,5))
-sns.boxplot(x='Citation',y='Growth form',data=data, hue ='Part used', palette='rainbow')
-plt.tight_layout()
+# =======================================================================
+#  4. Strip and swarm - every record as a point
+# =======================================================================
+fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.8))
+sns.stripplot(data=data, x="Citation", y="Growth form", hue="Part used",
+              palette=cat_colors(data["Part used"]), dodge=True, jitter=True,
+              size=5, alpha=0.85, ax=axes[0], linewidth=0)
+axes[0].set_title("Strip: jittered", fontsize=12.5)
+axes[0].legend_.remove()
+sns.swarmplot(data=df, x="Citation", y="Ailment cured", hue="Growth form",
+              palette=cat_colors(df["Growth form"]), dodge=True, size=4.5,
+              ax=axes[1], linewidth=0, warn_thresh=1.0)
+axes[1].set_title("Swarm: points nudged apart", fontsize=12.5)
+axes[1].legend_.remove()
+finish(fig, "Every record shown individually",
+       "Jitter and nudging keep overlapping points visible; each dot is one "
+       "record.", source=SRC)
 plt.show()
 
-plt.figure(figsize=(8,5))
-sns.boxplot(x='Citation',y='Growth form',data=data, hue ='Ailment cured', palette='rainbow')
-plt.tight_layout()
+# =======================================================================
+#  5. The species themselves
+#  Thirty-odd binomials need one row each. Sizing the canvas from the row
+#  count is what stops the names overlapping, and sorting by citation
+#  turns the axis into a ranking instead of an arbitrary list.
+# =======================================================================
+order = (df.groupby("Scientific name")["Citation"].max()
+           .sort_values(ascending=False).index.tolist())
+height = max(6.0, 0.30 * len(order) + 1.8)
+g = sns.catplot(data=df, x="Citation", y="Scientific name",
+                hue="Ailment cured", kind="swarm", order=order,
+                palette=cat_colors(df["Ailment cured"]),
+                height=height, aspect=1.55, s=6, legend_out=True)
+g.set_axis_labels("Times cited", "")
+g.figure.subplots_adjust(top=0.93, left=0.34, right=0.80, bottom=0.08)
+g.figure.suptitle("Species by number of citations", x=0.02, ha="left",
+                  fontsize=15.5, fontweight="bold", color=INK)
+g.figure.text(0.02, 0.015, SRC + "   " + SITE, fontsize=9.5, color=MUTED)
+for t in g.ax.get_yticklabels():
+    t.set_fontstyle("italic")      # binomials are italicised by convention
 plt.show()
 
-#Violin plots
-plt.figure(figsize=(8,6))
-sns.violinplot(x='Citation',y='Growth form',data=data, hue ='Part used', palette='rainbow')
+# =======================================================================
+#  6. Small multiples - all four variables at a glance
+# =======================================================================
+features = ["Growth form", "Part used", "Ailment cured"]
+fig, axes = panels(len(features), ncols=3, width=14.0, height=4.6)
+for ax_i, feat in zip(axes, features):
+    vc = data[feat].value_counts()
+    ax_i.barh(range(len(vc))[::-1], vc.values, height=0.62,
+              color=PAL[features.index(feat)])
+    ax_i.set_yticks(range(len(vc))[::-1])
+    ax_i.set_yticklabels([wrap(tidy(i), 22) for i in vc.index], fontsize=9.5)
+    ax_i.set_title(feat, fontsize=12)
+    ax_i.set_xlabel("Records")
+    for side in ("top", "right", "left"):
+        ax_i.spines[side].set_visible(False)
+    ax_i.xaxis.grid(True, color=GRID, lw=1)
+    ax_i.set_axisbelow(True)
+    label_bars(ax_i, horizontal=True)
+finish(fig, "The three categorical variables, side by side",
+       "Counts per level. Horizontal bars so the longer names stay readable.",
+       source=SRC)
 plt.show()
 
-#Violin plots
-plt.figure(figsize=(8,6))
-sns.violinplot(x='Citation',y='Growth form',data=data, hue ='Ailment cured',palette='rainbow')
-plt.show()
-
-#Boxen plots
-plt.figure(figsize=(8,6))
-sns.boxenplot(x='Citation',y='Growth form',data=data, hue ='Part used', palette='rainbow')
-plt.show()
-
-plt.figure(figsize=(8,6))
-sns.boxenplot(x='Citation',y='Part used',data=data, hue ='Ailment cured', palette='rainbow')
-plt.tight_layout()
-plt.show()
-
-#Bar plots
-plt.figure(figsize=(12,6))
-sns.barplot(x='Growth form',y='Citation',data=data, palette='rainbow', hue='Part used')
-plt.tight_layout()
-plt.show()
-
-plt.figure(figsize=(12,6))
-ax = plt.subplot(111)
-sns.barplot(x='Ailment cured',y='Citation',data=data, palette='rainbow', hue='Part used')
-plt.tight_layout()
-ax.legend(bbox_to_anchor=(0.8, 0.45))
-#plt.legend(loc=1)
-plt.show()
-
-#Point plot
-plt.figure(figsize=(10,6))
-sns.pointplot(x='Citation',y='Growth form',data=data)
-plt.show()
-
-plt.figure(figsize=(10,6))
-sns.pointplot(x='Citation',y='Growth form',data=data, hue='Part used')
-plt.show()
-
-plt.figure(figsize=(10,6))
-sns.pointplot(x='Citation',y='Growth form',data=data, hue='Part used')
-plt.show()
-
-plt.figure(figsize=(10,6))
-sns.pointplot(x='Citation',y='Growth form',data=data, hue='Ailment cured')
-plt.show()
-
-#Count plot
-plt.figure(figsize=(10,6))
-sns.countplot(x='Growth form',data=data, palette='rainbow')
-plt.show()
-
-plt.figure(figsize=(10,6))
-sns.countplot(x='Growth form',data=data, hue='Part used', palette='rainbow')
-plt.legend(loc=1)
-plt.show()
-
-plt.figure(figsize=(10,6))
-sns.countplot(x='Growth form',data=data, hue='Ailment cured', palette='rainbow')
-plt.legend(loc=2)
-plt.show()
-
-
-#Strip plot - Categorical Scatter Plots
-plt.figure(figsize=(12,8))
-sns.stripplot(x='Citation', y='Growth form', data=data, jitter=True, hue= 'Part used', dodge=True, palette='viridis')
-plt.show()
-
-#Swarm plots
-plt.figure(figsize=(10,6))
-sns.swarmplot(x='Citation', y='Ailment cured', data=data, hue='Growth form', dodge=True, palette='viridis')
-plt.tight_layout()
-plt.show()
-
-"""
-#Combining plots
-plt.figure(figsize=(12,8))
-sns.violinplot(x='Citation',y="Growth form", data=data, hue='Part used', dodge='True', palette='rainbow')
-sns.swarmplot(x='Citation',y="Growth form", data=data, hue='Part used', dodge='True', color='grey', alpha=.8, s=4)
-plt.show()
-
-#Plot 2
-plt.figure(figsize=(12,8))
-sns.boxplot(x='Citation',y='Part used',hue='Growth form',data=data, palette='rainbow')
-sns.swarmplot(x='Citation',y='Part used',hue='Growth form', dodge=True,data=data, alpha=.8,color='grey',s=4)
-
-#Plot 3
-plt.figure(figsize=(12,7))
-sns.barplot(x='Growth form',y='Citation',data=data, palette='rainbow', hue='Part used')
-sns.stripplot(x='Growth form',y="Citation",data=data, hue='Citation', dodge='True', color='grey', alpha=.8, s=2)
-plt.show()
-
-#Faceting Data with Catplot
-#https://towardsdatascience.com/a-complete-guide-to-plotting-categorical-variables-with-seaborn-bfe54db66bec
-g = sns.catplot(x='Citation',y='Growth form', col = 'Local name', data=data,
-          kind='bar', aspect=.6, palette='Set2')
-(g.set_axis_labels("Class", "Survival Rate")
-.set_titles("{col_name}")
-.set(ylim=(0,1)))
-plt.tight_layout()
-plt.savefig('seaborn_catplot.png', dpi=1000)
-"""
-
-categorical_features = ["Growth form", "Part used", "Ailment cured", "Citation"]
-fig, ax = plt.subplots(1, len(categorical_features), figsize=(16,8))
-for i, categorical_feature in enumerate(data[categorical_features]):
-  data[categorical_feature].value_counts().plot(kind="bar", ax=ax[i]).set_title(categorical_feature)
-plt.tight_layout()
-plt.show()
-
-"""
-#print(data)
-#print(data['Local Name'])
-data['Growth form'].value_counts().plot(kind='bar')
-plt.show()
-#data['Growth form'].value_counts().plot(kind='hist')
-
-plt.figure()
-from statsmodels.graphics.mosaicplot import mosaic
-plt.rcParams['font.size'] = 16.0
-mosaic(data, ['Growth form', 'Part used']);
-plt.show()
-"""
-plt.figure()
-sns.barplot(x=df['Growth form'].head(3),y=df['Citation'],data=df)
-plt.show()
-
-#Add frequencies/counts and percentages on bar tops
-total = float(len(data))
-print(total)
-plt.figure(figsize=(10,6))
-ax = sns.countplot(x='Growth form',data=data, hue='Part used', palette='rainbow')
-
-for p in ax.patches[0:]:
-  h = p.get_height()
-  x = p.get_x()+p.get_width()/2.0
-  if h != 0:
-      ax.annotate("%g" % p.get_height(), xy=(x,h-0.19), xytext=(0,4), rotation=0,
-                 textcoords="offset points", ha="center", va="bottom", color='green')
-
-for p in ax.patches:
-  percentage = '{:.2f}%'.format(100 * p.get_height()/total)
-  x = p.get_x() + p.get_width()
-  y = p.get_height()
-  ax.annotate(percentage, (x-0.02, y+0.45),ha='center', rotation=90, color='red')
-
-plt.tight_layout()
-plt.ylabel("Counts")
-plt.legend(loc=1)
-plt.gcf().text(0.1, 0.77, textstr, fontsize=14, color='green')
-plt.show()
-plt.clf()
-
-plt.figure(figsize=(10,6))
-ax = sns.countplot(x='Growth form',data=data, hue='Ailment cured', palette='rainbow')
-for p in ax.patches[0:]:
-  h = p.get_height()
-  x = p.get_x()+p.get_width()/2.0
-  if h != 0:
-      ax.annotate("%g" % p.get_height(), xy=(x,h-0.19), xytext=(0,4), rotation=0,
-              textcoords="offset points", ha="center", va="bottom", color='green')
-
-for p in ax.patches:
-  percentage = '{:.2f}%'.format(100 * p.get_height()/total)
-  x = p.get_x() + p.get_width()
-  y = p.get_height()
-  ax.annotate(percentage, (x-0.06, y+0.30),ha='center', rotation=90, color='red')
-
-plt.tight_layout()
-plt.ylabel("Counts")
-plt.legend(loc=1)
-plt.gcf().text(0.1, 0.77, textstr, fontsize=14, color='green')
-plt.show()
-plt.clf()
-
-#Add frequencies only
-plt.figure(figsize=(10,6))
-ax = sns.countplot(x='Growth form',data=data, hue='Part used', palette='rainbow')
-
-for p in ax.patches[0:]:
-  h = p.get_height()
-  x = p.get_x()+p.get_width()/2.0
-  if h != 0:
-      ax.annotate("%g" % p.get_height(), xy=(x,h), xytext=(0,4), rotation=0,
-                 textcoords="offset points", ha="center", va="bottom", color='green')
-plt.tight_layout()
-plt.ylabel("Counts")
-plt.legend(loc=1)
-plt.gcf().text(0.1, 0.77, textstr, fontsize=14, color='green')
-plt.show()
-plt.clf()
-
-#Add percentages only
-plt.figure(figsize=(10,6))
-ax = sns.countplot(x='Growth form',data=data, hue='Part used', palette='rainbow')
-
-for p in ax.patches:
-  percentage = '{:.2f}%'.format(100 * p.get_height()/total)
-  x = p.get_x() + p.get_width()/2.0
-  h = p.get_height()
-  if h !=0:
-      ax.annotate(percentage, xy=(x,h+0.1), ha="center", va="bottom", rotation=90, color='red') #textcoords="offset points",
-
-plt.tight_layout()
-plt.ylabel("Counts")
-plt.legend(loc=1)
-plt.gcf().text(0.1, 0.77, textstr, fontsize=14, color='green')
-plt.show()
-plt.clf()
-
-#Add frequencies only
-plt.figure(figsize=(10,6))
-ax = sns.countplot(x='Growth form',data=data, hue='Ailment cured', palette='rainbow')
-for p in ax.patches[0:]:
-  h = p.get_height()
-  x = p.get_x()+p.get_width()/2.0
-  if h != 0:
-      ax.annotate("%g" % p.get_height(), xy=(x,h), xytext=(0,4), rotation=0,
-              textcoords="offset points", ha="center", va="bottom", color='green')
-
-plt.tight_layout()
-plt.ylabel("Counts")
-plt.legend(loc=1)
-plt.gcf().text(0.1, 0.77, textstr, fontsize=14, color='green')
-plt.show()
-plt.clf()
-
-#Add percentages only
-plt.figure(figsize=(10,6))
-ax = sns.countplot(x='Growth form',data=data, hue='Ailment cured', palette='rainbow')
-
-for p in ax.patches:
-  percentage = '{:.2f}%'.format(100 * p.get_height()/total)
-  x = p.get_x() + p.get_width()/2.0
-  h = p.get_height()
-  if h !=0:
-      ax.annotate(percentage, xy=(x,h+0.1), ha="center", va="bottom", rotation=90, color='red') #textcoords="offset points",
-
-plt.tight_layout()
-plt.ylabel("Counts")
-plt.legend(loc=1)
-plt.gcf().text(0.1, 0.77, textstr, fontsize=14, color='green')
-plt.show()
-plt.clf()    
+# =======================================================================
+#  7. The most-cited growth forms, as a table
+# =======================================================================
+top = (data.groupby("Growth form")
+           .agg(Records=("Citation", "size"),
+                Median_citations=("Citation", "median"),
+                Max_citations=("Citation", "max"))
+           .sort_values("Records", ascending=False)
+           .reset_index())
+table(top, title="Growth forms, ranked by number of records",
+      source=SRC, total=False,
+      fmt={"Median_citations": "{:.1f}", "Max_citations": "{:.0f}"})
