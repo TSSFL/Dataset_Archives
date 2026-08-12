@@ -1,4 +1,6 @@
 #Generate pie charts and tables, merge charts in one pdf, similarly for tables:
+import warnings
+warnings.filterwarnings('ignore')
 import requests
 import io
 from textwrap import wrap
