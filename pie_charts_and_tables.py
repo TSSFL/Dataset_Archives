@@ -8,6 +8,8 @@ import pandas as pd
 import numpy as np
 import random
 from matplotlib import pyplot as plt
+# Enable tight layout globally for all figures
+plt.rcParams['figure.autolayout'] = True
 
 from PyPDF4 import PdfFileMerger, PdfFileReader
 
