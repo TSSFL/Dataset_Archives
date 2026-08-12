@@ -57,6 +57,14 @@ df = df.replace(r"_", " ", regex=True)
 i = 5
 j = 67
 
+# Which pies to display on screen. Everything is written to the PDF either
+# way; this only controls what is sent to the browser. Add or remove
+# indices freely - SHOW_ALL = True restores the old behaviour, at the cost
+# of the cell running out of time before it can write the merged file.
+SHOW = [1, 2, 3, 10, 25, 40]
+SHOW_ALL = False
+SKIP = {0, 50, 60, 61}          # columns that are not worth charting
+
 for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
   # 11 x 8.5 rather than 8 x 6. The old size was also why "Tight layout not
   # applied - the left and right margins cannot be made large enough" kept
@@ -80,24 +88,25 @@ for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
   ax1.set_position([0.08, 0.06, 0.84, 0.78])   # room for title and labels
   plt.gcf().text(0.02, 0.94, textstr, fontsize=14, color='green')
   plt.savefig("./chart_%s.pdf" % (k), bbox_inches='tight')
-  if k == 0 or k == 50 or k == 60 or k == 61:
-      continue
-  else:
+  if k not in SKIP and (SHOW_ALL or k in SHOW):
       plt.show()
   plt.close(fig)      # see note above: releases the figure straight away
 
 
 mergedCharts = PdfFileMerger()
+merged = 0
 for fileNumber in range(0, k+1):
 
-  if fileNumber == 0 or fileNumber == 50 or fileNumber == 60 or fileNumber == 61:
+  if fileNumber in SKIP:
       continue
   else:
-      #print(fileNumber)
       mergedCharts.append(PdfFileReader('chart_' + str(fileNumber)+ '.pdf', 'rb'))
+      merged += 1
 
 #Write all the files into a file which is named as shown below
 mergedCharts.write("./Merged_ChartsXX.pdf")
+print("Merged_ChartsXX.pdf  - %d pie charts "
+      "(%d shown above)" % (merged, len([n for n in SHOW if n not in SKIP])))
 
 
 #Write/merge all the files into a file which is named as shown below
@@ -149,6 +158,7 @@ for fileNumber in range(0, i+1):
   mergedTables.append(PdfFileReader('Table_' + str(fileNumber) + '.pdf', 'rb'))
 
 mergedTables.write("./Merged_TablesXY.pdf")
+print("Merged_TablesXY.pdf  - %d frequency tables" % (i+1))
 
 #Delete images and pdfs
 #import os
