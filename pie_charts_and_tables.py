@@ -57,12 +57,16 @@ df = df.replace(r"_", " ", regex=True)
 i = 5
 j = 67
 
-# Which pies to display on screen. Everything is written to the PDF either
-# way; this only controls what is sent to the browser. Add or remove
-# indices freely - SHOW_ALL = True restores the old behaviour, at the cost
-# of the cell running out of time before it can write the merged file.
-SHOW = [1, 2, 3, 10, 25, 40]
-SHOW_ALL = False
+# Every pie is displayed. The cost of doing that is not the drawing - all
+# 58 build and save in about 19 seconds - it is pushing 58 PNGs down the
+# websocket, which is what used to run the cell out of time.
+#
+# DISPLAY_DPI is the lever. The chart PDFs are vector, so this does not
+# touch them or their quality at all; it only sets how many pixels the
+# browser copy has. The figures stay 11 x 8.5 inches either way.
+SHOW_ALL = True
+SHOW = []
+DISPLAY_DPI = 70
 # Free-text columns - 26, 32, 95 and 158 distinct answers. A pie needs
 # categories, not sentences, so these are charted by nobody. They still get
 # a frequency table further down, which is the right form for them.
@@ -97,8 +101,10 @@ for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
   ax1.set_title(title, size=19, pad=18)
   ax1.set_position([0.08, 0.06, 0.84, 0.78])   # room for title and labels
   plt.gcf().text(0.02, 0.94, textstr, fontsize=14, color='green')
+  # Saved before the dpi is lowered - and a PDF is vector regardless.
   plt.savefig("./chart_%s.pdf" % (k), bbox_inches='tight')
   if SHOW_ALL or k in SHOW:
+      fig.set_dpi(DISPLAY_DPI)     # affects the PNG only, never the PDF
       plt.show()
   plt.close(fig)      # see note above: releases the figure straight away
 
