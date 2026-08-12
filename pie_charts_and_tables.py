@@ -10,10 +10,6 @@ import random
 from matplotlib import pyplot as plt
 # Enable tight layout globally for all figures
 plt.rcParams['figure.autolayout'] = True
-# Change the limit from 20 to 50 (or 0 to disable the warning entirely)
-plt.rcParams['figure.max_open_warning'] = 100
-# Closes every single open figure currently stored in memory
-plt.close('all') 
 
 from PyPDF4 import PdfFileMerger, PdfFileReader
 
