@@ -28,8 +28,11 @@ colors1 = ['tomato', 'gold', 'skyblue', '#ffcc99']
 #colors2 = ['orange','blue','green','red'] #explsion
 colors1 = ['#ff6666', '#ffcc99', '#99ff99', '#66b3ff', 'tomato', 'gold', 'skyblue', '#ffcc99', 'orange','blue','green','red', 'orange','blue','lime','red']
 
-def label_function(val):
-  return f'{val / 100.0 * len(df):.0f}\n{val:.2f}%'
+def label_function(val, total):
+  # total is the number of answers in THIS chart. The old version divided
+  # by len(df), the whole survey, but groupby drops the blanks - so the
+  # count printed on each slice did not match the slice it sat on.
+  return f'{val / 100.0 * total:.0f}\n{val:.2f}%'
 
 #Select multiple ranges of columns in Pandas DataFrame
 #df = df.iloc[:, np.r_[4:9, 12:13, 14, 16]]
@@ -47,7 +50,6 @@ df = pd.read_csv(io.StringIO(download.decode('utf-8')))  #error_bad_lines=False
 #Check indices -- Rehema_Japhet1: F --> BO
 df1 = df.columns.get_loc("group_ow7qd27/Name_of_school")
 df2 = df.columns.get_loc("group_qn2ae21/In_your_opinion_wha_learning_competences")
-print(df1, df2)
 df3 = df.iloc[:, np.r_[5,66]].columns
 df4 = df.iloc[:, np.r_[5,66]]
 col_list = [chr(i+65) for i in range(len(df4.columns))]
@@ -56,20 +58,33 @@ i = 5
 j = 67
 
 for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))): #5:65
-  fig, ax1 = plt.subplots(figsize=(8, 6))
+  # 11 x 8.5 rather than 8 x 6. The old size was also why "Tight layout not
+  # applied - the left and right margins cannot be made large enough" kept
+  # appearing: a long slice label simply had nowhere to go.
+  fig, ax1 = plt.subplots(figsize=(11, 8.5))
   title = "\n".join(wrap(column.replace("/", " ").replace("_", " "), 40))
-  df.groupby(column).size().plot(kind='pie', autopct=label_function, textprops={'fontsize': 14},
-                                colors=colors1, ax=ax1)
+
+  counts = df.groupby(column).size()
+  total = int(counts.sum())
+  # Wrap the slice labels too, so a long answer stacks instead of pushing
+  # the pie off its own canvas.
+  counts.index = ["\n".join(wrap(str(ix), 20)) for ix in counts.index]
+
+  counts.plot(kind='pie', autopct=lambda v: label_function(v, total),
+              textprops={'fontsize': 13}, colors=colors1, ax=ax1,
+              startangle=90, counterclock=False, labeldistance=1.06,
+              pctdistance=0.62,
+              wedgeprops=dict(edgecolor='white', linewidth=2))
   ax1.set_ylabel('')
-  ax1.set_title(title, size=18)
-  plt.tight_layout()
-  plt.gcf().text(0.02, 0.80, textstr, fontsize=14, color='green')
+  ax1.set_title(title, size=19, pad=18)
+  ax1.set_position([0.08, 0.06, 0.84, 0.78])   # room for title and labels
+  plt.gcf().text(0.02, 0.94, textstr, fontsize=14, color='green')
   plt.savefig("./chart_%s.pdf" % (k), bbox_inches='tight')
   if k == 0 or k == 50 or k == 60 or k == 61:
       continue
   else:
-      print(k)
       plt.show()
+  plt.close(fig)      # see note above: releases the figure straight away
 
 
 mergedCharts = PdfFileMerger()
