@@ -398,14 +398,14 @@ def _annotate(ax, rects, values, horizontal, fmt="{:g}", pad=0.01):
         if horizontal:
             ax.text(r.get_width() + room, r.get_y() + r.get_height() / 2,
                     fmt.format(v), va="center", ha="left",
-                    fontsize=10, color=INK_2)
+                    fontsize=11.5, color=INK_2)
         else:
             ax.text(r.get_x() + r.get_width() / 2, r.get_height() + room,
                     fmt.format(v), ha="center", va="bottom",
-                    fontsize=10, color=INK_2)
+                    fontsize=11.5, color=INK_2)
 
 
-def label_bars(ax, total=None, pct=False, fmt="{:g}", fontsize=10,
+def label_bars(ax, total=None, pct=False, fmt="{:g}", fontsize=11.5,
                color=INK_2, skip_zero=True, horizontal=None, pad=0.012,
                collide=True):
     """Label bars on any axes - including ones seaborn or pandas drew.
@@ -535,11 +535,11 @@ def counts(df, column, ax=None, color=None, horizontal=None, pct=True,
             if r.get_width() > r.get_height():     # horizontal bar
                 r_x = r.get_width() + (ax.get_xlim()[1] - ax.get_xlim()[0]) * .01
                 ax.text(r_x, r.get_y() + r.get_height() / 2, txt,
-                        va="center", ha="left", fontsize=10, color=INK_2)
+                        va="center", ha="left", fontsize=11.5, color=INK_2)
             else:
                 r_y = r.get_height() + (ax.get_ylim()[1] - ax.get_ylim()[0]) * .01
                 ax.text(r.get_x() + r.get_width() / 2, r_y, txt,
-                        ha="center", va="bottom", fontsize=10, color=INK_2)
+                        ha="center", va="bottom", fontsize=11.5, color=INK_2)
         for t in list(ax.texts):                   # drop the plain duplicates
             if t.get_text().replace(".", "").isdigit():
                 t.remove()
@@ -973,21 +973,22 @@ def panels(n, ncols=3, width=11.5, height=3.1, **kw):
 _TABLE_CSS = """
 <style>
 .tssfl-t{{border-collapse:separate;border-spacing:0;font-family:
- 'Nimbus Sans',Helvetica,Arial,system-ui,sans-serif;font-size:14px;
+ 'Nimbus Sans',Helvetica,Arial,system-ui,sans-serif;font-size:15.5px;
  color:{ink};width:100%;margin:14px 0 6px 0;
  box-shadow:0 1px 2px rgba(15,23,42,.06);border-radius:10px;overflow:hidden}}
 .tssfl-t caption{{caption-side:top;text-align:left;font-weight:700;
- font-size:16px;color:{ink};padding:0 0 4px 2px}}
+ font-size:17px;color:{ink};padding:0 0 4px 2px}}
 .tssfl-t thead th{{background:{head};color:#fff;font-weight:600;
- text-align:left;padding:11px 14px;white-space:nowrap;border:0}}
+ text-align:left;padding:12px 16px;white-space:nowrap;border:0;
+ font-size:15px}}
 .tssfl-t thead th.num,.tssfl-t td.num{{text-align:right;
  font-variant-numeric:tabular-nums}}
-.tssfl-t tbody td{{padding:9px 14px;border-top:1px solid {grid}}}
+.tssfl-t tbody td{{padding:11px 16px;border-top:1px solid {grid}}}
 .tssfl-t tbody tr:nth-child(even){{background:{band}}}
 .tssfl-t tbody tr:hover{{background:{hover}}}
 .tssfl-t tfoot td{{padding:10px 14px;border-top:2px solid {grid};
  font-weight:700;background:{band}}}
-.tssfl-cap{{font-size:12px;color:{muted};margin:0 0 16px 2px}}
+.tssfl-cap{{font-size:12.5px;color:{muted};margin:0 0 16px 2px}}
 </style>
 """
 

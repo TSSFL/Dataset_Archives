@@ -225,7 +225,7 @@ for ax_i, feat in zip(axes, features):
     ax_i.barh(range(len(vc))[::-1], vc.values, height=0.62,
               color=PAL[features.index(feat)])
     ax_i.set_yticks(range(len(vc))[::-1])
-    ax_i.set_yticklabels([wrap(tidy(i), 22) for i in vc.index], fontsize=9.5)
+    ax_i.set_yticklabels([wrap(tidy(i), 22) for i in vc.index], fontsize=11)
     ax_i.set_title(feat, fontsize=12)
     ax_i.set_xlabel("Records")
     for side in ("top", "right", "left"):
