@@ -93,7 +93,7 @@ surface_year = int(depth_to_year[df[DEPTH].min()])
 peak = int(df[MPS].max())
 finish(fig,
        f"Microplastics first appear around {onset_year} and rise steeply "
-       f"toward the surface",
+       f"toward the surface  (revised version)",
        f"Concentration by depth, with each level dated. Every layer below "
        f"{onset_depth} cm - dated {onset_year} and earlier - reads zero; the "
        f"{surface_year} surface layer carries the core's highest load at "

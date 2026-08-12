@@ -65,7 +65,10 @@ plt.xticks(x)
 plt.yticks(y1)
 
 ax2 = ax.twinx()
-ax2.plot(x, y1, '-ok', color="red")
+# '-ok' asks for black and color="red" then overrides it, which is what
+# the "color is redundantly defined" warning was reporting. Dropping the k
+# leaves the line exactly as red as it always was, and says nothing.
+ax2.plot(x, y1, '-o', color="red")
 
 ax2.set_yticks(ax.get_yticks())
 ax2.set_ylim(ax.get_ylim())
@@ -86,5 +89,6 @@ ax2.set_ylabel('Year', fontsize=16, color="midnightblue")
 ax.grid(color="blue", linestyle='--')
 ax2.grid(color="blue", linestyle='--')
 
-plt.title('Projecting 3D into 2D', fontweight="bold", color="Black")
+plt.title('Projecting 3D into 2D  (original version)',
+          fontweight="bold", color="Black")
 plt.show()
