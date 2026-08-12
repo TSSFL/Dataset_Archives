@@ -170,12 +170,14 @@ plt.show()
 fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.8))
 sns.stripplot(data=data, x="Citation", y="Growth form", hue="Part used",
               palette=cat_colors(data["Part used"]), dodge=True, jitter=True,
-              size=5, alpha=0.85, ax=axes[0], linewidth=0)
+              size=9, alpha=0.9, ax=axes[0], linewidth=0.8,
+              edgecolor=SURFACE)
 axes[0].set_title("Strip: jittered", fontsize=12.5)
 axes[0].legend_.remove()
 sns.swarmplot(data=df, x="Citation", y="Ailment cured", hue="Growth form",
-              palette=cat_colors(df["Growth form"]), dodge=True, size=4.5,
-              ax=axes[1], linewidth=0, warn_thresh=1.0)
+              palette=cat_colors(df["Growth form"]), dodge=True, size=8,
+              ax=axes[1], linewidth=0.8, edgecolor=SURFACE,
+              warn_thresh=1.0)
 axes[1].set_title("Swarm: points nudged apart", fontsize=12.5)
 axes[1].legend_.remove()
 finish(fig, "Every record shown individually",
