@@ -89,6 +89,6 @@ ax2.set_ylabel('Year', fontsize=16, color="midnightblue")
 ax.grid(color="blue", linestyle='--')
 ax2.grid(color="blue", linestyle='--')
 
-plt.title('Projecting 3D into 2D  (original version)',
-          fontweight="bold", color="Black")
+plt.title('Microplastics by depth in a dated sediment core'
+          '  (original version)', fontweight="bold", color="Black")
 plt.show()
