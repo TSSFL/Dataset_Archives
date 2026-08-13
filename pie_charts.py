@@ -5,8 +5,13 @@ Split out of pie_charts_and_tables.py. The charts and the frequency tables
 were competing for a single cell's execution budget and neither finished;
 each half now has its own. The tables live in frequency_tables.py.
 
-Every pie is displayed, and every one is also written to
-Merged_ChartsXX.pdf.
+Every column gets a pie and every pie goes into Merged_ChartsXX.pdf. A
+handful are then shown on screen at the end, as a preview of the file.
+
+That order matters. Drawing and saving all 58 takes about 19 seconds;
+displaying one costs far more than drawing it, so showing all 58 inside
+the loop is what used to exhaust the cell before it could write the PDF.
+Change PREVIEW to see different ones - it does not affect the PDF.
 
 Fixes carried over from the combined script:
 
@@ -59,6 +64,10 @@ j = 67
 # frequency table in frequency_tables.py, which is the right form for them.
 SKIP = {0, 50, 60, 61}
 
+# Which pies to show on screen once everything is written. The PDF always
+# holds the full set regardless of what is listed here.
+PREVIEW = [1, 2, 3, 10, 25, 40]
+
 for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))):
   if k in SKIP:
       continue
@@ -80,8 +89,8 @@ for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))):
   ax1.set_position([0.08, 0.06, 0.84, 0.78])
   plt.gcf().text(0.02, 0.94, textstr, fontsize=14, color='green')
   plt.savefig("./chart_%s.pdf" % (k), bbox_inches='tight')
-  plt.show()
-  plt.close(fig)
+  if k not in PREVIEW:
+      plt.close(fig)      # released now; the preview ones are kept open
 
 mergedCharts = PdfFileMerger()
 merged = 0
@@ -93,3 +102,8 @@ for fileNumber in range(0, k + 1):
 
 mergedCharts.write("./Merged_ChartsXX.pdf")
 print("Merged_ChartsXX.pdf  -  %d pie charts" % merged)
+print("Showing %d of them below." % len([n for n in PREVIEW if n not in SKIP]))
+
+# The preview figures are the only ones still open, so this renders exactly
+# those - after the PDF is safely written.
+plt.show()

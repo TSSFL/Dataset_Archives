@@ -5,9 +5,9 @@ Split out of pie_charts_and_tables.py, where the charts and the tables were
 competing for one cell's execution budget and neither finished. The pie
 charts live in pie_charts.py.
 
-The tables are not displayed - they are rendered straight into
-Merged_TablesXY.pdf, which is what they are for. All 62 columns get a
-table, including the four free-text ones that cannot be pie charts.
+All 62 columns get a table, including the four free-text ones that cannot
+be pie charts, and all 62 go into Merged_TablesXY.pdf. A handful are then
+shown on screen at the end as a preview of the file.
 
 One change of substance: the 62 tables are rendered in a single weasyprint
 call rather than 62. weasyprint costs roughly 0.4 s to start up per call
@@ -32,6 +32,10 @@ df = df.replace(r"_", " ", regex=True)
 
 i = 5
 j = 67
+
+# Which tables to show on screen once the PDF is written. The PDF always
+# holds all of them regardless of what is listed here.
+PREVIEW = [0, 1, 2, 3]
 
 parts = []
 for column, n in zip(df.columns[i:j], range(len(df.columns[i:j]))):
@@ -63,3 +67,13 @@ with open("Table.html", "w+") as file:
 page_break = '<div style="page-break-after: always;"></div>'
 HTML(string=page_break.join(parts)).write_pdf("./Merged_TablesXY.pdf")
 print("Merged_TablesXY.pdf  -  %d frequency tables" % len(parts))
+print("Showing %d of them below." % len(PREVIEW))
+
+# Preview, after the file is safely written.
+try:
+    from IPython.display import HTML as _show, display
+    for n in PREVIEW:
+        if n < len(parts):
+            display(_show(parts[n]))
+except Exception:
+    pass
