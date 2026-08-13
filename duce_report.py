@@ -327,7 +327,7 @@ class ReportGenerator:
         for bars in (b1, b2):
             ax.bar_label(bars, fmt="%d", padding=3, fontsize=10, color=INK_2)
         for i, t in enumerate(tot):
-            ax.annotate(f"total {t[2]:,}", xy=(i, max(t[0], t[1])),
+            ax.annotate(f"Total {t[2]:,}", xy=(i, max(t[0], t[1])),
                         xytext=(0, 22), textcoords="offset points",
                         ha="center", fontweight="bold", color=INK)
         ax.set_xticks(x)

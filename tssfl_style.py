@@ -673,7 +673,7 @@ def _readable_on(hex_color):
 
 def donut(labels, values, ax=None, cols=None, hole=0.58, fmt="{pct:.1f}%",
           explode=None, startangle=90, labels_outside=False, centre=None,
-          centre_note="responses", counterclock=False, shadow=False):
+          centre_note="Responses", counterclock=False, shadow=False):
     """Part-to-whole. Deliberately flexible, because the variants are the point.
 
     `hole=0` gives a plain pie, `explode=0.06` pulls every wedge out (or pass

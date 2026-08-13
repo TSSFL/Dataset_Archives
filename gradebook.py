@@ -249,7 +249,7 @@ plt.show()
 plt.clf()
 
 # Plot 3 - histogram of the ceiling score
-final_data_df["Ceiling Score"].plot.hist(bins=20, label="Hist", color="magenta")
+final_data_df["Ceiling Score"].plot.hist(bins=20, label="Histogram", color="magenta")
 plt.title("Student Scores Distribution")
 plt.gcf().text(0.2, 0.75, textstr, fontsize=14, color='green')
 plt.show()
@@ -269,7 +269,7 @@ plt.show()
 plt.clf()
 
 # Plot 5 - the same for the unrounded final score
-final_data_df["Final Score"].plot.hist(bins=20, label="Hist", color="magenta")
+final_data_df["Final Score"].plot.hist(bins=20, label="Histogram", color="magenta")
 final_data_df["Final Score"].plot.density(linewidth=4, label="KDE")
 final_mean = final_data_df["Final Score"].mean()
 final_std = final_data_df["Final Score"].std()

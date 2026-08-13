@@ -282,7 +282,7 @@ ax = axes[0][0]
 ax.fill_between(daily["Date"], daily["Messages"], color=BLUE, alpha=0.22)
 ax.plot(daily["Date"], daily["Messages"], color=BLUE, lw=1.6)
 peak = daily.loc[daily["Messages"].idxmax()]
-ax.annotate(f"busiest day\n{peak['Messages']:,} messages\n"
+ax.annotate(f"Busiest day\n{peak['Messages']:,} messages\n"
             f"{pd.to_datetime(peak['Date']):%d %b %Y}",
             xy=(peak["Date"], peak["Messages"]), xytext=(-12, -46),
             textcoords="offset points", fontsize=10, color=INK_2,
@@ -316,7 +316,7 @@ ax = axes[1][0]
 by_hour = df.groupby("Hour").size().reindex(range(24), fill_value=0)
 cols = [AMBER if h == by_hour.idxmax() else BLUE for h in by_hour.index]
 ax.bar(by_hour.index, by_hour.values, 0.74, color=cols)
-ax.annotate(f"peak hour: {by_hour.idxmax():02d}:00",
+ax.annotate(f"Peak hour: {by_hour.idxmax():02d}:00",
             xy=(by_hour.idxmax(), by_hour.max()), xytext=(0, 8),
             textcoords="offset points", ha="center", fontsize=10, color=AMBER,
             fontweight="bold")
@@ -359,7 +359,7 @@ for w, (label, value) in zip(wedges, parts.items()):
                 fontweight="bold", fontsize=11)
 ax.text(0, 0.06, f"{total:,}", ha="center", va="center", fontsize=21,
         fontweight="bold", color=INK)
-ax.text(0, -0.13, "messages", ha="center", va="center", fontsize=10.5,
+ax.text(0, -0.13, "Messages", ha="center", va="center", fontsize=10.5,
         color=MUTED)
 ax.set(aspect="equal")
 ax.set_title("What gets sent")
@@ -381,7 +381,7 @@ if emojis:
     ax.margins(x=0.14)
     dress(ax, "x")
 else:
-    ax.text(0.5, 0.5, "no emojis found", ha="center", va="center",
+    ax.text(0.5, 0.5, "No emojis found", ha="center", va="center",
             color=MUTED, transform=ax.transAxes)
     ax.set_axis_off()
 
@@ -420,7 +420,7 @@ try:
         plt.show()
         plt.close(fig)
 except ImportError:
-    print("  wordcloud is not installed - skipping the word cloud")
+    print("  Wordcloud is not installed - skipping the word cloud")
 
 # =======================================================================
 #  Report
