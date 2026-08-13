@@ -39,7 +39,9 @@ table tr { page-break-inside: avoid; }
     position: fixed;
     top: -1.55cm;
     left: 0;
-    right: 0;
+    /* Stop short of the right margin: the page counter sits there, and a
+       full-width band ran underneath it. */
+    right: 3.6cm;
     height: 5px;
     background: linear-gradient(to right,
         #096EFF 0%, #096EFF 58%,

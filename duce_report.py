@@ -100,13 +100,16 @@ class ReportGenerator:
         self.current_datetime = datetime.datetime.now(self.gmt3).strftime(
             '%Y-%m-%d %H:%M:%S')
 
-    def check_duplicates(self, df):
+    def check_duplicates(self, df, label=""):
+        """Report which dataset was checked - three identical 'no duplicate'
+        lines told the reader nothing about which file was clean."""
+        name = f"{label}: " if label else ""
         duplicates = df[df.duplicated(['REG #'], keep=False)]
         if len(duplicates) > 0:
-            print(f"  duplicate registration numbers: {len(duplicates)} "
-                  f"rows, removed")
+            print(f"  {name}{len(duplicates)} duplicate registration "
+                  f"numbers, removed")
             return df.drop_duplicates(['REG #'], keep=False)
-        print("  no duplicate registration numbers")
+        print(f"  {name}no duplicate registration numbers")
         return df
 
     def preprocess_data(self, df, reg_column, sex_column, year_column,
@@ -510,9 +513,9 @@ class ReportGenerator:
 
         df1, df2, df3 = dfs
         print("\nChecking for duplicates")
-        df1 = self.generate_report(self.check_duplicates(df1))
-        df2 = self.generate_report(self.check_duplicates(df2))
-        df3 = self.generate_report(self.check_duplicates(df3))
+        df1 = self.generate_report(self.check_duplicates(df1, "Enrolment"))
+        df2 = self.generate_report(self.check_duplicates(df2, "Registration"))
+        df3 = self.generate_report(self.check_duplicates(df3, "Students with IDs"))
 
         df1_0, df2_1, df3_2 = (d.iloc[:, [0, -1]] for d in (df1, df2, df3))
         for d in (df1_0, df2_1, df3_2):
