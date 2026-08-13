@@ -65,6 +65,12 @@ import pytz
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 
+# The subtitle rows carry '' in their numeric columns, and fillna(0) runs
+# over object columns - both raise pandas deprecation notices about how a
+# future version will treat them. Opting in to that future behaviour now is
+# the supported way to settle it, rather than filtering the message away.
+pd.set_option('future.no_silent_downcasting', True)
+
 # --- TSSFL brand --------------------------------------------------------
 BLUE, EMERALD, AMBER = "#096EFF", "#10B981", "#f59e0b"
 ROSE, VIOLET = "#e11d48", "#7c3aed"
@@ -107,7 +113,9 @@ class ReportGenerator:
                         programme_column):
         wanted = [reg_column, sex_column, year_column, programme_column]
         if all(c in df.columns for c in wanted):
-            df = df[wanted]
+            # .copy(), or every later assignment on this frame warns that it
+            # is writing to a slice of the file it came from.
+            df = df[wanted].copy()
             return df.rename(columns={reg_column: 'REG #', sex_column: 'SEX',
                                       programme_column: 'PROGRAMME',
                                       year_column: 'YEAR'})
@@ -541,8 +549,6 @@ class ReportGenerator:
         merged_df.fillna(0, inplace=True)
         merged_df = merged_df.map(lambda x: int(x) if isinstance(x, float)
                                   else x)
-        for d in (df1, df2, df3):
-            pass
         df1 = df1.map(lambda x: int(x) if isinstance(x, float) else x)
         df2 = df2.map(lambda x: int(x) if isinstance(x, float) else x)
         df3 = df3.map(lambda x: int(x) if isinstance(x, float) else x)
