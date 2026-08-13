@@ -113,26 +113,26 @@ MUTED, GRID, BAND = "#94a3b8", "#e2e8f0", "#f8fafc"
 
 css = f"""
 <style>
-  @page {{ size: A4 landscape; margin: 12mm; }}
+  @page {{ size: A4 landscape; margin: 10mm 12mm; }}
   body {{ font-family: 'Nimbus Sans', Helvetica, Arial, sans-serif;
          color: {INK}; margin: 0; }}
-  h1 {{ font-size: 19px; margin: 0 0 2px 0; }}
-  p.sub {{ font-size: 12px; color: {INK2}; margin: 0 0 14px 0; }}
-  table {{ border-collapse: collapse; width: 100%; font-size: 11.5px; }}
+  h1 {{ font-size: 18px; margin: 0 0 2px 0; }}
+  p.sub {{ font-size: 11.5px; color: {INK2}; margin: 0 0 10px 0; }}
+  table {{ border-collapse: collapse; width: 100%; font-size: 11px; }}
   thead th {{ background: {BLUE}; color: #fff; font-weight: 600;
-              padding: 8px 9px; text-align: right; white-space: nowrap; }}
+              padding: 6px 9px; text-align: right; white-space: nowrap; }}
   thead th.left {{ text-align: left; }}
   thead tr.top th {{ border-bottom: 1px solid rgba(255,255,255,.35);
                      text-align: center; font-size: 12px; }}
-  tbody td {{ padding: 6px 9px; text-align: right;
+  tbody td {{ padding: 3.5px 9px; text-align: right;
               font-variant-numeric: tabular-nums;
               border-bottom: 1px solid {GRID}; }}
   tbody td.left {{ text-align: left; }}
   tbody td.code {{ color: {MUTED}; font-size: 10.5px; white-space: nowrap; }}
   tbody tr.alt td {{ background: {BAND}; }}
   tbody tr.group td {{ background: #eaf2ff; color: {BLUE}; font-weight: 700;
-                       font-size: 12px; letter-spacing: .02em;
-                       padding-top: 9px; padding-bottom: 9px; }}
+                       font-size: 11.5px; letter-spacing: .02em;
+                       padding-top: 6px; padding-bottom: 6px; }}
   tbody tr.subtotal td {{ font-weight: 700; background: #f1f5f9;
                           border-top: 1.5px solid {GRID}; }}
   tbody tr.total td {{ font-weight: 700; background: {BLUE}; color: #fff;
@@ -142,7 +142,7 @@ css = f"""
   .bar {{ display: inline-block; height: 7px; background: {BLUE};
           opacity: .28; border-radius: 2px; margin-right: 6px;
           vertical-align: middle; }}
-  p.foot {{ font-size: 10.5px; color: {MUTED}; margin-top: 12px; }}
+  p.foot {{ font-size: 10px; color: {MUTED}; margin-top: 9px; }}
 </style>
 """
 
