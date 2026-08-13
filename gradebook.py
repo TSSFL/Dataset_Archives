@@ -225,6 +225,8 @@ plt.title("Letter Grade Distribution")
 plt.legend(handles=[p1, p2, p3, p4, p5, p6, p7, p8], title="Grade Summary",
            loc=1, fontsize='medium', fancybox=True)
 plt.gcf().text(0.60, 0.25, textstr, fontsize=14, color='green')
+# The rotated tick labels push the "Final Grade" axis title off the canvas.
+plt.tight_layout()
 plt.show()
 plt.clf()
 
@@ -242,6 +244,7 @@ plt.title("Letter Grade Distribution")
 plt.legend(handles=[p1, p2, p3, p4, p5, p6, p7, p8], title="Grade Summary",
            loc=1, fontsize='medium', fancybox=True)
 plt.gcf().text(0.60, 0.25, textstr, fontsize=14, color='green')
+plt.tight_layout()
 plt.show()
 plt.clf()
 
@@ -298,7 +301,7 @@ for i, values in enumerate(data, start=1):
     ax.plot(np.full(len(values), i) + jitter, values, ".", color=".25",
             markersize=5, alpha=0.55)
     # Above the whisker, not on the median line it was landing on.
-    ax.annotate(f"mean {values.mean():.1f}", xy=(i, values.max()),
+    ax.annotate(f"Mean {values.mean():.1f}", xy=(i, values.max()),
                 xytext=(0, 10), textcoords="offset points", ha="center",
                 color="red")
 ax.set_xticks(range(1, len(sections) + 1))
@@ -361,7 +364,9 @@ ax.set_xlabel("Share of the section (%)")
 ax.set_xlim(0, 100)
 plt.title("Grade Profile by Section")
 plt.legend(title="Final Grade", bbox_to_anchor=(1.01, 1), loc="upper left")
-plt.subplots_adjust(bottom=0.24)
+# Reserve the right margin, or the legend sitting outside the axes is cut
+# off by the figure edge.
+plt.subplots_adjust(bottom=0.24, right=0.80)
 plt.gcf().text(0.01, 0.02, textstr, fontsize=12, color='green')
 plt.show()
 plt.clf()
@@ -451,8 +456,12 @@ with open("Exams_Results.html", "w+") as file:
 # fifty-column landscape A4 sheet is unreadable even when it does render.
 # The wide table is served by the HTML and the CSV, which are what it suits.
 # Set WIDE_PDF = True in the cell to attempt the full thing anyway.
+# Section is dropped from the printed sheet only - eleven columns did not
+# fit landscape A4 and Remarks was being cut off the right edge. It stays in
+# Final_Grades.csv, where width costs nothing.
+printable = final_grades.drop(columns=["Section"], errors="ignore")
 summary_html = build_table(
-    final_grades, 'blue_light', font_size='medium',
+    printable, 'blue_light', font_size='medium',
     font_family='Open Sans, sans-serif', text_align='left', index=False,
     even_color='black', even_bg_color='white')
 HTML(string=summary_html).write_pdf(
@@ -464,6 +473,9 @@ if globals().get("WIDE_PDF"):
     HTML(string=output).write_pdf(
         "Exams_Results.pdf",
         stylesheets=[CSS(string='@page { size: landscape }')])
+
+if os.path.exists("Quiz_Folder.zip"):
+    os.remove("Quiz_Folder.zip")      # extracted already; not an output
 
 print()
 print("Exams_Results.html   - the full grade book, all %d columns"
