@@ -45,6 +45,7 @@ import base64
 import datetime
 import os
 import re
+import textwrap
 import urllib.request
 from collections import Counter
 
@@ -144,6 +145,27 @@ def parse_chat(path):
                            df["Message"].str.split().str.len(), 0)
     df["Letters"] = np.where(df["IsText"], df["Message"].str.len(), 0)
     return df.reset_index(drop=True)
+
+
+def emoji_name(ch):
+    """A readable label for an emoji.
+
+    Neither Nimbus Sans nor DejaVu carries emoji glyphs, and SageCell has no
+    emoji font installed, so drawing the character itself produces an empty
+    box and a "Glyph missing from font" warning per emoji. The name renders
+    everywhere and says more than the picture does at chart size.
+    """
+    try:
+        import emoji as _emoji
+        name = _emoji.demojize(ch, delimiters=("", ""))
+    except Exception:
+        name = ""
+    if not name or name == ch:
+        return "emoji"
+    name = name.replace("_", " ").strip()
+    name = re.sub(r"\s*(light|medium|dark|medium light|medium dark)?"
+                  r"\s*skin tone$", "", name).strip()
+    return name[:1].upper() + name[1:]
 
 
 def count_emojis(series):
@@ -341,7 +363,8 @@ if emojis:
                    color=AMBER)
     ax.bar_label(bars, fmt="%d", padding=4, fontsize=10, color=INK_2)
     ax.set_yticks(range(len(top_e)))
-    ax.set_yticklabels([e for e, _ in top_e], fontsize=17)
+    ax.set_yticklabels(["\n".join(textwrap.wrap(emoji_name(e), 22))
+                        for e, _ in top_e], fontsize=9.5)
     ax.set_xlabel("Times used")
     ax.set_title(f"Most used emojis  ({sum(emojis.values()):,} in total)")
     ax.margins(x=0.14)
@@ -454,6 +477,9 @@ tbody td.rank {{ color: {MUTED}; }}
 tbody tr:nth-child(even) {{ background: #f8fafc; }}
 img {{ width: 100%; margin-top: 6px; }}
 p.foot {{ font-size: 10.5px; color: {MUTED}; margin-top: 16px; }}
+p.emoji {{ font-size: 21px; margin: 0 0 6px 0; }}
+p.emoji span {{ margin-right: 20px; }}
+p.emoji b {{ font-size: 13px; color: {INK_2}; }}
 </style></head><body>
 <div class="band"></div>
 <h1>{group}</h1>
@@ -464,6 +490,8 @@ The busiest day was {pd.to_datetime(busiest_day['Date']):%d %B %Y} with
 {busiest_day['Messages']:,}. {'Members are anonymised.' if ANONYMISE
  else 'Members are named.'}</p>
 <div class="stats">{stat_html}</div>
+<h2>Most used emojis</h2>
+<p class="emoji">{"".join(f"<span>{e} <b>{c}</b></span>" for e, c in emojis.most_common(8))}</p>
 <h2>The {TOP_N} most active members</h2>
 <table><thead><tr><th>#</th><th>Member</th><th>Messages</th><th>Share</th>
 <th>Words</th><th>Words each</th><th>Attachments</th><th>Links</th>
