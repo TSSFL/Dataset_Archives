@@ -124,6 +124,7 @@ class ReportGenerator:
         return None
 
     def generate_report(self, df):
+        df = df.copy()          # see note above: pandas 2 flags slice writes
         with open('./Templates/replace_dict.json', 'r') as file:
             replace_dict = json.load(file)
         df['PROGRAMME'] = df['PROGRAMME'].replace(replace_dict)
@@ -190,9 +191,12 @@ class ReportGenerator:
                                   1.0: 'YEAR 1', 2.0: 'YEAR 2',
                                   3.0: 'YEAR 3'})
 
+        df2['PROGRAMME'] = df2['PROGRAMME'].astype(object)
         column_totals = df2.dropna(axis=1, how='all').sum(numeric_only=True,
                                                           axis=0)
-        df2.loc['Column Totals'] = column_totals
+        totals_row = column_totals.copy()
+        totals_row[df2.columns[0]] = ''
+        df2.loc['Column Totals'] = totals_row
         df2.loc[:, 'GRAND TOTALS'] = df2.sum(numeric_only=True, axis=1)
 
         Total = df2["YEAR 1"].sum(numeric_only=True, axis=1)
