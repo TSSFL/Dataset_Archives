@@ -35,7 +35,7 @@ j = 67
 
 # Which tables to show on screen once the PDF is written. The PDF always
 # holds all of them regardless of what is listed here.
-PREVIEW = [0, 1, 2, 3]
+PREVIEW = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 parts = []
 for column, n in zip(df.columns[i:j], range(len(df.columns[i:j]))):

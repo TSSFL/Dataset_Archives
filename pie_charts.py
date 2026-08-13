@@ -66,12 +66,11 @@ SKIP = {0, 50, 60, 61}
 
 # Which pies to show on screen once everything is written. The PDF always
 # holds the full set regardless of what is listed here.
-PREVIEW = [1, 2, 3, 10, 25, 40]
+PREVIEW = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+           12, 15, 18, 21, 24, 27, 30, 35, 40, 45]
 
-for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))):
-  if k in SKIP:
-      continue
-
+def draw_pie(column):
+  """Build one pie. Used for the PDF and again for the preview."""
   fig, ax1 = plt.subplots(figsize=(11, 8.5))
   title = "\n".join(wrap(column.replace("/", " ").replace("_", " "), 40))
 
@@ -87,10 +86,17 @@ for column, k in zip(df.columns[i:j], range(len(df.columns[i:j]))):
   ax1.set_ylabel('')
   ax1.set_title(title, size=19, pad=18)
   ax1.set_position([0.08, 0.06, 0.84, 0.78])
-  plt.gcf().text(0.02, 0.94, textstr, fontsize=14, color='green')
+  fig.text(0.02, 0.94, textstr, fontsize=14, color='green')
+  return fig
+
+
+columns = list(df.columns[i:j])
+for column, k in zip(columns, range(len(columns))):
+  if k in SKIP:
+      continue
+  fig = draw_pie(column)
   plt.savefig("./chart_%s.pdf" % (k), bbox_inches='tight')
-  if k not in PREVIEW:
-      plt.close(fig)      # released now; the preview ones are kept open
+  plt.close(fig)
 
 mergedCharts = PdfFileMerger()
 merged = 0
@@ -102,8 +108,14 @@ for fileNumber in range(0, k + 1):
 
 mergedCharts.write("./Merged_ChartsXX.pdf")
 print("Merged_ChartsXX.pdf  -  %d pie charts" % merged)
-print("Showing %d of them below." % len([n for n in PREVIEW if n not in SKIP]))
+shown = [n for n in PREVIEW if n not in SKIP and n < len(columns)]
+print("Showing %d of them below." % len(shown))
 
-# The preview figures are the only ones still open, so this renders exactly
-# those - after the PDF is safely written.
-plt.show()
+# Rebuilt and shown one at a time. plt.show() renders the *current* figure,
+# not every open one, so keeping them open and calling it once at the end
+# displayed only a single chart. Redrawing costs a fraction of a second
+# each and keeps the PDF written before anything is displayed.
+for n in shown:
+    fig = draw_pie(columns[n])
+    plt.show()
+    plt.close(fig)
