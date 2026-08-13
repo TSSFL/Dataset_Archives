@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Report</title>
+    <style>
+    <--Add more styles here -->
+ /* Set the page size to A4 */  
+    th, td {
+        text-align: center;
+        vertical-align: middle; /* Optional: Vertically center the content */
+    }
+
+   
+    td[colspan] {
+            text-align: center;
+        }
+        tr > td[colspan] {
+            height: 0.5cm;
+        } 
+        h1, h2 {
+            text-align: center;
+            margin: auto;
+        }
+        /* style.css */
+    /* TSSFL brand: #096EFF blue, #10B981 emerald, #f59e0b amber */
+    h1 {
+    color: #096EFF;
+    font-family: 'Arial', sans-serif;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+   h2 {
+    color: #10B981;
+    font-family: 'Arial', sans-serif;
+    font-size: 1.1em;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+   /* A brand rule under the title, and a footer credit on every page. */
+   h1::after {
+    content: "";
+    display: block;
+    width: 90px;
+    height: 4px;
+    background: #096EFF;
+    margin: 14px auto 0 auto;
+}
+   .tssfl-credit {
+    text-align: center;
+    font-family: 'Arial', sans-serif;
+    font-size: 0.8em;
+    color: #94a3b8;
+    margin-top: 6px;
+}
+thead, tfoot { display: table-row-group }
+    </style>
+</head>
+<body>
+<h1>Dar es Salaam University College of Education Student Information Report for the Academic Year 2023/2024</h1>
+<h2>Generated on {{ current_datetime }}</h2>
+<p class="tssfl-credit">Produced with the TSSFL Technology Stack &middot; www.tssfl.com</p>
+<table>
+    <thead>
+      <tr>
+       <th colspan="{{ df1.shape[1] + 1 }}" style="text-align: center;"><b>Enrolled Students for the 2023/2024 Academic Year</b></th>
+        </tr>
+         <tr>
+        <th colspan="{{ df1.shape[1] + 1 }}" style="text-align: center; background-color: #f2f2f2;"><b> </b></th>
+        </tr>
+        <tr>
+            <th colspan="{{ df1.shape[1] + 1 }}" style="text-align: center;"><b>M = Male, F = Female, T = Total</b></th>
+        </tr>
+        <tr>
+            <th rowspan="2"><b>Index</b></th>
+            <th rowspan="2"><b>Programmes</b></th>
+            <th colspan="3"><b>Year 1</b></th>
+            <th colspan="3"><b>Year 2</b></th>
+            <th colspan="3"><b>Year 3</b></th>
+            <th colspan="3"><b>Grand Total</b></th>
+        </tr>
+        <tr>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for index, row in df1.iterrows() %}
+        <tr>
+            <td><b>{{ index }}</b></td>
+            {% for cell in row %}
+            <td>{{ cell }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<table>
+    <thead>
+        <tr>
+            <th colspan="{{ df2.shape[1] + 1 }}" style="text-align: center;"><b>Registered Students for the 2023/2024 Academic Year</b></th>
+        </tr>
+       <tr> <th colspan="{{ df2.shape[1] + 1 }}" style="text-align: center; background-color: #f2f2f2;"><b> </b></th>
+        </tr>
+        <tr>
+            <th colspan="{{ df2.shape[1] + 1 }}" style="text-align: center;"><b>M = Male, F = Female, T = Total</b></th>
+        </tr>
+        <tr>
+            <th rowspan="2"><b>Index</b></th>
+            <th rowspan="2"><b>Programmes</b></th>
+            <th colspan="3"><b>Year 1</b></th>
+            <th colspan="3"><b>Year 2</b></th>
+            <th colspan="3"><b>Year 3</b></th>
+            <th colspan="3"><b>Grand Total</b></th>
+        </tr>
+        <tr>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for index, row in df2.iterrows() %}
+        <tr>
+            <td><b>{{ index }}</b></td>
+            {% for cell in row %}
+            <td>{{ cell }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<table>
+    <thead>
+        <tr>
+            <th colspan="{{ df3.shape[1] + 1 }}" style="text-align: center;"><b>Students With Smart Identity Cards for the 2023/2024 Academic Year</b></th>
+        </tr>
+      <tr>
+<th colspan="{{ df3.shape[1] + 1 }}" style="text-align: center; background-color: #f2f2f2;"><b> </b></th>
+        </tr>
+        <tr>
+            <th colspan="{{ df3.shape[1] + 1 }}" style="text-align: center;"><b>M = Male, F = Female, T = Total</b></th>
+        </tr>
+        <tr>
+            <th rowspan="2"><b>Index</b></th>
+            <th rowspan="2"><b>Programmes</b></th>
+            <th colspan="3"><b>Year 1</b></th>
+            <th colspan="3"><b>Year 2</b></th>
+            <th colspan="3"><b>Year 3</b></th>
+            <th colspan="3"><b>Grand Total</b></th>
+        </tr>
+        <tr>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+            <th><b>M</b></th>
+            <th><b>F</b></th>
+            <th><b>T</b></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for index, row in df3.iterrows() %}
+        <tr>
+            <td><b>{{ index }}</b></td>
+            {% for cell in row %}
+            <td>{{ cell }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<table>
+    <thead>
+        <tr>
+            <th colspan="{{ df4.shape[1] + 1}}" style="text-align: center;"><b>Students Enrolled, Registered, and with Smart Identity Cards for the Academic Year 2023/2024</b></th>
+        </tr>
+    <tr>
+       <th colspan="{{ df3.shape[1] + 1 }}" style="text-align: center; background-color: #f2f2f2;"><b> </b></th>
+        </tr>
+        <tr>
+            <th rowspan="2"><b>Index</b></th>
+            <th rowspan="2"><b>Programmes</b></th>
+            <th colspan="1"><b>Enrolled</b></th>
+            <th colspan="1"><b>Registered</b></th>
+            <th colspan="1"><b>Students with IDs</b></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for index, row in df4.iterrows() %}
+        <tr>
+            <td><b>{{ index }}</b></td>
+            {% for cell in row %}
+            <td>{{ cell }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if charts_uri %}
+<div style="page-break-before: always;"></div>
+<h2 style="color:#096EFF; margin-top: 6px;">At a glance</h2>
+<img src="{{ charts_uri }}" style="width:100%; margin-top: 4px;"
+     alt="Summary charts"/>
+{% endif %}
+<div class="footer">
+    <span class="page"></span> <span class="total-pages"></span>
+    <br>
+    <i>Generated at TSSFL Technology Stack: <a href="https://www.tssfl.com" style="color: #096EFF;">www.tssfl.com</a></i>
+</div>
+</body>
