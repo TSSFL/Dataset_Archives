@@ -116,41 +116,43 @@ css = f"""
   @page {{ size: A4 landscape; margin: 10mm 12mm; }}
   body {{ font-family: 'Nimbus Sans', Helvetica, Arial, sans-serif;
          color: {INK}; margin: 0; }}
-  /* Cap the width so a wide browser cannot stretch the columns away from
-     the programme names. Landscape A4 is narrower than this, so the PDF
-     still fills its page. */
-  .wrap {{ max-width: 1060px; }}
-  h1 {{ font-size: 21px; margin: 0 0 3px 0; }}
-  p.sub {{ font-size: 13px; color: {INK2}; margin: 0 0 13px 0; }}
-  table {{ border-collapse: collapse; width: 100%; font-size: 13.5px; }}
+  /* Full width, and scrollable rather than squashed: inside a SageCell
+     output pane the table would otherwise wrap every programme name onto
+     three lines. min-width keeps the columns legible and the pane scrolls. */
+  .wrap {{ width: 100%; overflow-x: auto; }}
+  h1 {{ font-size: 24px; margin: 0 0 4px 0; }}
+  p.sub {{ font-size: 14.5px; color: {INK2}; margin: 0 0 14px 0; }}
+  table {{ border-collapse: collapse; width: 100%; min-width: 940px;
+           font-size: 16px; }}
   thead th {{ background: {BLUE}; color: #fff; font-weight: 600;
-              padding: 8px 10px; font-size: 13px; text-align: right; white-space: nowrap; }}
+              padding: 9px 12px; font-size: 14.5px; text-align: right; white-space: nowrap; }}
   thead th.left {{ text-align: left; }}
   thead tr.top th {{ border-bottom: 1px solid rgba(255,255,255,.35);
                      text-align: center; font-size: 12px; }}
-  tbody td {{ padding: 5.5px 10px; text-align: right;
+  tbody td {{ padding: 7px 12px; text-align: right;
               font-variant-numeric: tabular-nums;
               border-bottom: 1px solid {GRID}; }}
   tbody td.left {{ text-align: left; }}
-  tbody td .code {{ color: {MUTED}; font-size: 12px; white-space: nowrap; }}
+  tbody td .code {{ color: {MUTED}; font-size: 13.5px; white-space: nowrap; }}
   tbody tr.alt td {{ background: {BAND}; }}
   tbody tr.group td {{ background: #eaf2ff; color: {BLUE}; font-weight: 700;
-                       font-size: 13.5px; letter-spacing: .02em;
+                       font-size: 16px; letter-spacing: .02em;
                        padding-top: 7px; padding-bottom: 7px; }}
   tbody tr.subtotal td {{ font-weight: 700; background: #f1f5f9;
                           border-top: 1.5px solid {GRID}; }}
   tbody tr.total td {{ font-weight: 700; background: {BLUE}; color: #fff;
-                       border-top: 2px solid {BLUE}; font-size: 14px; }}
+                       border-top: 2px solid {BLUE}; font-size: 17px; }}
   td.tot {{ font-weight: 600; }}
   td.zero {{ color: #cbd5e1; }}
   .bar {{ display: inline-block; height: 7px; background: {BLUE};
           opacity: .28; border-radius: 2px; margin-right: 6px;
           vertical-align: middle; }}
-  p.foot {{ font-size: 11.5px; color: {MUTED}; margin-top: 11px; }}
+  p.foot {{ font-size: 12.5px; color: {MUTED}; margin-top: 12px; }}
 
   /* The PDF has a fixed sheet to fit, so it keeps the compact sizes. */
   @media print {{
-    .wrap {{ max-width: none; }}
+    .wrap {{ overflow-x: visible; }}
+    table {{ min-width: 0; }}
     h1 {{ font-size: 18px; }}
     p.sub {{ font-size: 11.5px; margin-bottom: 10px; }}
     table {{ font-size: 11px; }}
@@ -172,6 +174,11 @@ head = f"""
 {len(counts.index):,} programmes. Every figure is a headcount;
 subtotals are the sum of the programmes above them.</p>
 <table>
+  <colgroup>
+    <col style="width:24%">
+    <col span="9" style="width:7%">
+    <col style="width:13%">
+  </colgroup>
   <thead>
     <tr class="top">
       <th class="left" rowspan="2">Programme</th>
@@ -233,7 +240,28 @@ with open("Students_Registered.html", "w+") as file:
 from weasyprint import HTML
 HTML(string=html).write_pdf("DUCE_Registered_Students.pdf")
 
-print(f"Students_Registered.html  and  DUCE_Registered_Students.pdf")
+# --- the same table as data, not just as a picture ----------------------
+export = table_df.drop(columns=["kind"]).copy()
+export.insert(0, "Section", "")
+section = ""
+for i, r in table_df.iterrows():
+    if r["kind"] == "group":
+        section = r["programme"]
+    export.loc[i, "Section"] = section
+export = export[table_df["kind"] != "group"]      # headers are not data rows
+export.columns = ["Section", "Code", "Programme",
+                  "Y1 Male", "Y1 Female", "Y1 Total",
+                  "Y2 Male", "Y2 Female", "Y2 Total",
+                  "Y3 Male", "Y3 Female", "Y3 Total", "All years"]
+export.to_csv("DUCE_Registered_Students.csv", index=False)
+
+with pd.ExcelWriter("DUCE_Registered_Students.xlsx", engine="openpyxl") as xl:
+    export.to_excel(xl, sheet_name="Enrolment", index=False)
+    # the underlying counts too, so the workbook can be re-pivoted
+    counts.to_excel(xl, sheet_name="By programme")
+
+print("Students_Registered.html   DUCE_Registered_Students.pdf")
+print("DUCE_Registered_Students.csv   DUCE_Registered_Students.xlsx")
 print(f"{grand:,} students, {len(counts.index)} programmes, "
       f"{duplicates} duplicate registration numbers")
 

@@ -5,7 +5,19 @@ Kept as it was: the same pretty_html_table 'green_light' styling, the same
 column layout, the same subtotal rows, the same two output files. It exists
 so the original report can still be shown.
 
-One cause, fixed in six places. Each of these
+Three fixes: the warnings, the column alignment, and the sex labels.
+
+**The M and F headers were swapped.** pd.crosstab sorts SEX alphabetically,
+so its columns arrive F then M, but the header row assigned 'M', 'F'. Every
+sex figure in the table sat under the wrong heading - UDD01 Year 1 is M=66,
+F=86 and the table printed 86 under M; the grand total claimed 1,150 male
+when 1,150 is the female count. The labels now match the data.
+
+**The counts were left-aligned**, so 86.0 and 1094.0 started at the same
+edge and no column could be read down. Numeric columns are right-aligned
+with tabular figures.
+
+WARNINGS: one cause, fixed in six places. Each of these
 
     df2.loc['Column Totals'] = df2.sum(numeric_only=True, axis=0)
 
@@ -122,7 +134,12 @@ df2.loc["Grand Total"] = _labelled(
     + df2.iloc[18].iloc[1:])
  
 #Multilevel index https://stackoverflow.com/questions/21443963/pandas-multilevel-column-names
-df2.columns = [['PROGRAMMES', 'Year 1', ' ', ' ', 'Year 2', ' ', ' ', 'Year 3',  '', '', 'Row Totals'], ['Bachelors, PGD, MS', 'M', 'F', 'Total', 'M', 'F', 'Total', 'M', 'F', 'Total', 'Grand Total']]
+#pd.crosstab sorts SEX alphabetically, so the columns arrive as F then M -
+#but this header row said M then F, which put every figure under the wrong
+#sex. UDD01 Year 1 is M=66, F=86, and the table printed 86 under M. The
+#grand total reported 1,150 male when 1,150 is the female count. Labels
+#corrected to the order the data is actually in.
+df2.columns = [['PROGRAMMES', 'Year 1', ' ', ' ', 'Year 2', ' ', ' ', 'Year 3',  '', '', 'Row Totals'], ['Bachelors, PGD, MS', 'F', 'M', 'Total', 'F', 'M', 'Total', 'F', 'M', 'Total', 'Grand Total']]
  
 df2.columns = df2.columns.rename("Index", level=1)
 #df2 = df2.reset_index(drop=False)
@@ -134,10 +151,53 @@ from weasyprint import HTML
  
 #Create pdf table
 #Change colors as appropriate: blue_light, blue_dark, grey_light, grey_dark, orange_light, orange_dark, yellow_light, yellow_dark, green_light, green_dark, red_light, red_dark
+#text_align='left' left-aligned the counts too, so digits never lined up:
+#86.0 and 1094.0 began at the same edge. build_table takes one alignment for
+#the whole table, so the numeric columns are right-aligned afterwards with a
+#small stylesheet, which also drops the trailing .0 the float dtype shows.
 output = build_table(df2, 'green_light', font_size='medium', font_family='Open Sans, sans-serif', text_align='left', width='auto', index=True, even_color='black', even_bg_color='white')
+
+align_css = '''
+<style>
+  table {{ width: 100%; }}
+  table tr td:nth-child(n+3), table tr th:nth-child(n+3) {{
+      text-align: right !important;
+      font-variant-numeric: tabular-nums; }}
+  table tr td:nth-child(-n+2), table tr th:nth-child(-n+2) {{
+      text-align: left !important; }}
+</style>
+'''.replace("{{", "{").replace("}}", "}")
+output = align_css + output
  
 with open("Students_Registered.html","w+") as file:
     file.write(output)
  
 #HTML(string=output).write_pdf("email_report.pdf")
 HTML(string=output).write_pdf("DUCE_Registered_Students.pdf", stylesheets=[CSS(string='@page { size: landscape }')])
+
+#The same table as data. The two-level column index is flattened - "Year 1
+#F" reads better in a spreadsheet than a merged header - and the counts are
+#written as whole people rather than the floats the total rows produced.
+#Distinct filenames, because sri_report.py writes a report of the same name.
+_out = df2.copy()
+#Only the first column of each year group carries the year name; the next
+#two are blank, so carry it forward or the flattened names collide.
+_flat, _year = [], ""
+for _a, _b in _out.columns:
+    _a, _b = str(_a).strip(), str(_b).strip()
+    if _a and _a != "PROGRAMMES":
+        _year = _a
+    _flat.append(_b if _a == "PROGRAMMES" else f"{_year} {_b}".strip())
+_out.columns = _flat
+for _c in _out.columns[1:]:
+    _out[_c] = pd.to_numeric(_out[_c], errors="coerce").round(0).astype("Int64")
+_out.index.name = "Row"
+_out.to_csv("DUCE_Registered_Students_original.csv")
+
+with pd.ExcelWriter("DUCE_Registered_Students_original.xlsx",
+                    engine="openpyxl") as _xl:
+    _out.to_excel(_xl, sheet_name="Enrolment")
+
+print("Students_Registered.html   DUCE_Registered_Students.pdf")
+print("DUCE_Registered_Students_original.csv"
+      "   DUCE_Registered_Students_original.xlsx")
