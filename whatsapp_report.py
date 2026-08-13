@@ -50,6 +50,7 @@ import urllib.request
 from collections import Counter
 
 import matplotlib
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -288,6 +289,16 @@ ax.annotate(f"busiest day\n{peak['Messages']:,} messages\n"
             ha="right", arrowprops=dict(arrowstyle="-", color=MUTED))
 ax.set_ylabel("Messages")
 ax.set_title("Conversation over time")
+# Full ISO dates at every tick ran into each other. Let matplotlib choose
+# how many ticks the axis can hold, label them "15 Jan" rather than
+# "2022-01-15", and rotate so they never collide however long the chat is.
+ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=4, maxticks=9))
+ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(
+    ax.xaxis.get_major_locator()))
+for label in ax.get_xticklabels():
+    label.set_rotation(45)
+    label.set_horizontalalignment("right")
+ax.set_xlim(daily["Date"].min(), daily["Date"].max())
 dress(ax)
 
 ax = axes[0][1]
@@ -298,7 +309,7 @@ ax.set_yticks(range(len(top)))
 ax.set_yticklabels(top.index, fontsize=10)
 ax.set_xlabel("Messages sent")
 ax.set_title(f"The {len(top)} most active members")
-ax.margins(x=0.14)
+ax.margins(x=0.18)   # room for the longest bar's value label
 dress(ax, "x")
 
 ax = axes[1][0]
