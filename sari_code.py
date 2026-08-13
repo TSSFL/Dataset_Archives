@@ -99,9 +99,16 @@ def enrolment_panel(ax, title, years, show_legend=False, label_size=10):
             ax.text(bar.get_x() + bar.get_width() / 2, value + top * 0.02,
                     f"{value:,}\n{share:.0f}%", ha="center", va="bottom",
                     fontsize=label_size, color=INK_2, linespacing=1.25)
-        # the total, stated once, above the pair it belongs to
-        ax.text(i, top * 1.19, f"{row['Total']:,}", ha="center", va="center",
-                fontsize=label_size + 0.5, fontweight="bold", color=INK)
+        # The total, stated once above the pair it belongs to. A year with
+        # no intake says so - a bare "0" floating over an empty slot is the
+        # same defect as labelling a zero-height bar.
+        if row["Total"]:
+            ax.text(i, top * 1.19, f"{row['Total']:,}", ha="center",
+                    va="center", fontsize=label_size + 0.5,
+                    fontweight="bold", color=INK)
+        else:
+            ax.text(i, top * 0.10, "no intake", ha="center", va="center",
+                    fontsize=label_size - 0.5, style="italic", color=MUTED)
 
     ax.set_xticks(list(x))              # set ticks before labels: no warning
     ax.set_xticklabels(df["Year"])
@@ -126,7 +133,8 @@ def enrolment_panel(ax, title, years, show_legend=False, label_size=10):
 #  1. The four Faculty of Science programmes
 # =======================================================================
 science = [p for p, (fac, _) in PROGRAMMES.items() if fac == "Science"]
-fig, axes = plt.subplots(2, 2, figsize=(13.0, 9.0))
+fig, axes = plt.subplots(2, 2, figsize=(13.0, 9.6))
+fig.subplots_adjust(hspace=0.42)      # room between a panel and the title below
 for ax, name in zip(axes.ravel(), science):
     enrolment_panel(ax, name, PROGRAMMES[name][1])
 finish(fig, "Enrolment in Faculty of Science programmes",
