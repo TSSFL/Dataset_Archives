@@ -19,7 +19,32 @@
 @page {
     @top-right{
         content: "Page " counter(page) " of " counter(pages);
+        font-size: 9pt;
+        color: #475569;
     }
+    margin-top: 2.6cm;
+}
+
+/* Keep a row whole. A long programme name wraps to two lines, and at a page
+   boundary the name was being carried to the next page while its figures
+   stayed on the previous one - page 2 opened with a name and no numbers. */
+table tr { page-break-inside: avoid; }
+
+/* TSSFL accent rule across the header of every page.
+   The document belongs to DUCE, so the mark is a line in the three brand
+   colours - blue #096EFF, emerald #10B981, amber #f59e0b - rather than a
+   logo, which would misattribute the report. position: fixed puts it on
+   every page; the negative top lifts it into the header margin. */
+.tssfl-band {
+    position: fixed;
+    top: -1.55cm;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(to right,
+        #096EFF 0%, #096EFF 58%,
+        #10B981 58%, #10B981 82%,
+        #f59e0b 82%, #f59e0b 100%);
 }
 <--added End-->
 /* Default font settings.
