@@ -19,10 +19,14 @@ roster and it runs unchanged - and a fork of this repository carries no route
 to anybody's data.
 
 Outputs
-    Exams_Results.html / .pdf   the full grade book
+    Exams_Results.html          the full grade book, all columns
     Exams_Results.csv           the same table, as data
-    Final_Grades.csv            the summary: who got what, and did they pass
+    Final_Grades.csv / .pdf     the summary: who got what, and did they pass
     Section N Grades.csv        one per section, sorted by name
+
+The printable PDF is the summary, not the full book. weasyprint cannot
+finish a 150 x 50 table inside a cell's time budget, and such a sheet is
+unreadable in any case. Set WIDE_PDF = True in the cell to try it anyway.
 
 Adapted from a Real Python article; the sample data is theirs.
 """
@@ -437,11 +441,30 @@ output = build_table(df_sorted, 'blue_light', font_size='medium',
 with open("Exams_Results.html", "w+") as file:
     file.write(output)
 
-HTML(string=output).write_pdf("Exams_Results.pdf",
-                              stylesheets=[CSS(string='@page { size: landscape }')])
+# The printable report is built from the summary, not the full grade book.
+# weasyprint does not finish a 150-row by 50-column table inside a cell's
+# time budget - it ran for over 160 seconds here and was cut off - and a
+# fifty-column landscape A4 sheet is unreadable even when it does render.
+# The wide table is served by the HTML and the CSV, which are what it suits.
+# Set WIDE_PDF = True in the cell to attempt the full thing anyway.
+summary_html = build_table(
+    final_grades, 'blue_light', font_size='medium',
+    font_family='Open Sans, sans-serif', text_align='left', index=False,
+    even_color='black', even_bg_color='white')
+HTML(string=summary_html).write_pdf(
+    "Final_Grades.pdf", stylesheets=[CSS(string='@page { size: landscape }')])
+
+if globals().get("WIDE_PDF"):
+    print("WIDE_PDF is set - rendering all %d columns; this may exceed the "
+          "cell's time limit." % df_sorted.shape[1])
+    HTML(string=output).write_pdf(
+        "Exams_Results.pdf",
+        stylesheets=[CSS(string='@page { size: landscape }')])
 
 print()
-print("Exams_Results.html   Exams_Results.pdf")
+print("Exams_Results.html   - the full grade book, all %d columns"
+      % df_sorted.shape[1])
+print("Final_Grades.pdf     - the printable summary")
 print("Exams_Results.csv    - the full grade book, %d rows x %d columns"
       % df_sorted.shape)
 print("Final_Grades.csv     - the summary, %d rows x %d columns"
