@@ -443,7 +443,11 @@ with open("Exams_Results.html", "w+") as file:
 
 # The printable report is built from the summary, not the full grade book.
 # weasyprint does not finish a 150-row by 50-column table inside a cell's
-# time budget - it ran for over 160 seconds here and was cut off - and a
+# budget. Measured three times on SageCell: a 20x6 control table rendered in
+# 1.1s in the same cell moments earlier, then the 150x50 table ran past 155s
+# and was cut off - so it is neither a slow server nor a broken weasyprint,
+# but this table specifically. The same render takes 6.3s on a desktop, so
+# the likely cause is the per-kernel memory ceiling rather than raw speed. A
 # fifty-column landscape A4 sheet is unreadable even when it does render.
 # The wide table is served by the HTML and the CSV, which are what it suits.
 # Set WIDE_PDF = True in the cell to attempt the full thing anyway.
