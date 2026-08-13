@@ -28,6 +28,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from itertools import cycle
+
+
+def _pct(height, total, dp):
+    """Percentage, or an empty string when the total is zero.
+
+    MSc. Ind Chem has no Year 2 intake, so its total for that year is 0 and
+    the division raised "RuntimeWarning: invalid value encountered in scalar
+    divide" once per bar. Those bars are height 0 and were never annotated
+    anyway - the division simply happened before the `if y != 0` guard.
+    """
+    if not total:
+        return ''
+    return '{:.{dp}f}%'.format(100 * height / total, dp=dp)
+
  
 raw_data_1 = {'plan_type': ['Year 1', 'Year 2', 'Year 3', 'Grand Total'],
         'Male':     [232,250,240,722],
@@ -91,7 +105,7 @@ for i in range(ax.shape[0]):
        
         #Add %
         for l, p in zip(cycle(range(4)), ax[i][j].patches[0:]):
-            percentage = '{:.0f}%'.format(100 * p.get_height()/df[0].iloc[l, 3])
+            percentage = _pct(p.get_height(), df[0].iloc[l, 3], 0)
             x = p.get_x() + p.get_width()
             y = p.get_height()
             if y != 0:
@@ -120,7 +134,7 @@ for i in range(ax.shape[0]):
                 ax[i][j].set_title("MSc. Env Biol")
                 #Add %
                 for l, p in zip(cycle(range(3)), ax[i][j].patches[0:]):
-                    percentage = '{:.0f}%'.format(100 * p.get_height()/df2.iloc[l, 3])
+                    percentage = _pct(p.get_height(), df2.iloc[l, 3], 0)
                     x = p.get_x() + p.get_width()
                     y = p.get_height()
                     if y != 0:
@@ -134,7 +148,7 @@ for i in range(ax.shape[0]):
                 ax[i][j].set_title("MSc. Ind Chem")
                 #Add %
                 for l, p in zip(cycle(range(3)), ax[i][j].patches[0:]):
-                    percentage = '{:.0f}%'.format(100 * p.get_height()/df3.iloc[l, 3])
+                    percentage = _pct(p.get_height(), df3.iloc[l, 3], 0)
                     x = p.get_x() + p.get_width()
                     y = p.get_height()
                     if y != 0:
@@ -146,7 +160,7 @@ for i in range(ax.shape[0]):
                 ax[i][j].set_title("MSc. Ed")
                 #Add %
                 for l, p in zip(cycle(range(3)), ax[i][j].patches[0:]):
-                    percentage = '{:.0f}%'.format(100 * p.get_height()/df4.iloc[l, 3])
+                    percentage = _pct(p.get_height(), df4.iloc[l, 3], 0)
                     x = p.get_x() + p.get_width()
                     y = p.get_height()
                     if y != 0:
@@ -170,7 +184,7 @@ for p in ax.patches[0:]:
                    textcoords="offset points", ha="center", va="bottom", color='red')
 #Add %
 for l, p in zip(cycle(range(4)), ax.patches[0:]):
-    percentage = '{:.2f}%'.format(100 * p.get_height()/df5.iloc[l, 3])
+    percentage = _pct(p.get_height(), df5.iloc[l, 3], 2)
     x = p.get_x() + p.get_width()
     y = p.get_height()
     if y != 0:
@@ -221,7 +235,7 @@ for p in ax.patches[0:]:
                    textcoords="offset points", ha="center", va="bottom")
 #Add %
 for i, p in zip(cycle(range(4)), ax.patches[0:]):
-    percentage = '{:.2f}%'.format(100 * p.get_height()/df.iloc[i, 3])
+    percentage = _pct(p.get_height(), df.iloc[i, 3], 2)
     x = p.get_x() + p.get_width()
     y = p.get_height()
     if y != 0:
@@ -300,7 +314,7 @@ for p in ax.patches[0:]:
                    textcoords="offset points", ha="center", va="bottom")
 #Add %
 for i, p in zip(cycle(range(4)), ax.patches[0:]):
-    percentage = '{:.2f}%'.format(100 * p.get_height()/df.iloc[i, 3])
+    percentage = _pct(p.get_height(), df.iloc[i, 3], 2)
     x = p.get_x() + p.get_width()
     y = p.get_height()
     if y != 0:
@@ -378,7 +392,7 @@ for p in ax.patches[0:]:
                    textcoords="offset points", ha="center", va="bottom")
 #Add %
 for i, p in zip(cycle(range(4)), ax.patches[0:]):
-    percentage = '{:.2f}%'.format(100 * p.get_height()/df.iloc[i, 3])
+    percentage = _pct(p.get_height(), df.iloc[i, 3], 2)
     x = p.get_x() + p.get_width()
     y = p.get_height()
     if y != 0:
@@ -452,7 +466,7 @@ for p in ax.patches[0:]:
                    textcoords="offset points", ha="center", va="bottom")
 #Add %
 for i, p in zip(cycle(range(3)), ax.patches[0:]):
-    percentage = '{:.2f}%'.format(100 * p.get_height()/df.iloc[i, 3])
+    percentage = _pct(p.get_height(), df.iloc[i, 3], 2)
     x = p.get_x() + p.get_width()
     y = p.get_height()
     if y != 0:
@@ -526,7 +540,7 @@ for p in ax.patches[0:]:
                    textcoords="offset points", ha="center", va="bottom")
 #Add %
 for i, p in zip(cycle(range(3)), ax.patches[0:]):
-    percentage = '{:.2f}%'.format(100 * p.get_height()/df.iloc[i, 3])
+    percentage = _pct(p.get_height(), df.iloc[i, 3], 2)
     x = p.get_x() + p.get_width()
     y = p.get_height()
     if y != 0:
