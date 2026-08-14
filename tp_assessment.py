@@ -624,19 +624,33 @@ for reg in sorted({v["reg"] for v in visits}):
 
 clean = pd.DataFrame(students)
 
+# Records do not all carry the same keys - a student observed in one subject
+# has no "Subj 2" columns - and a column pandas has to fill can come back as
+# object, which cannot be rounded or histogrammed. Coerce every column that is
+# meant to hold a number, once, here, rather than guarding each use.
+NUM_COLS = (["Visits", "AVR(P&T)"] + [n for n, _, _ in TEMPLATE]
+            + [c for c in clean.columns
+               if c.startswith("Score ")
+               or (c.startswith("Subj ") and " Ass " in c
+                   and not c.endswith("date"))])
+for _c in NUM_COLS:
+    if _c in clean.columns:
+        clean[_c] = pd.to_numeric(clean[_c], errors="coerce")
+
 # --- the totals ---------------------------------------------------------
 components = {"AVR": clean["AVR(P&T)"]}
 for name in ("IG", "PTG"):
     col = find_col(raw, name)
     components[name] = (pd.to_numeric(raw[col], errors="coerce")
-                        if col else pd.Series(np.nan, index=clean.index))
+                        if col else pd.Series(np.nan, index=clean.index,
+                                              dtype=float))
     clean[name] = components[name].values
 
 present = [k for k, s in components.items() if s.notna().any()]
 scale = sum(WEIGHTS[k] for k in present) or 1.0
-clean["Total"] = sum(WEIGHTS[k] * components[k].fillna(0).values
-                     for k in present) / scale
-clean["Total"] = clean["Total"].round(2)
+clean["Total"] = np.round(
+    sum(WEIGHTS[k] * components[k].fillna(0).to_numpy(dtype=float)
+        for k in present) / scale, 2)
 
 
 def grade_of(mark):
