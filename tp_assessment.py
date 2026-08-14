@@ -924,7 +924,8 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13.4, 6.4))
 lo = min(clean["Total"].min(), PASS_MARK)
 edges = np.arange(np.floor(lo / 5) * 5,
                   np.ceil(clean["Total"].max() / 5) * 5 + 5, 5)
-ax1.hist(clean["Total"], bins=edges, color=BLUE, edgecolor=SURFACE, lw=1.4)
+counts, _, _ = ax1.hist(clean["Total"].to_numpy(dtype=float), bins=edges,
+                        color=BLUE, edgecolor=SURFACE, lw=1.4)
 ax1.axvline(clean["Total"].mean(), color=AMBER, lw=2.4,
             label="Mean %.1f%%" % clean["Total"].mean())
 ax1.axvline(PASS_MARK, color=ROSE, lw=1.8, ls="--",
@@ -937,7 +938,7 @@ ax1.set_ylabel("Students")
 # A count of students is a whole number, so the axis must not offer halves,
 # and the two rules are named below the plot where no bar can reach them.
 ax1.yaxis.set_major_locator(MaxNLocator(integer=True))
-ax1.set_ylim(0, max(np.histogram(clean["Total"], bins=edges)[0]) * 1.12)
+ax1.set_ylim(0, float(counts.max()) * 1.12)
 ax1.legend(frameon=False, fontsize=10, loc="upper center",
            bbox_to_anchor=(0.5, -0.13), ncol=2, handlelength=1.8)
 ax1.set_title("Distribution of totals", fontsize=12.5)
