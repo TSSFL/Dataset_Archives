@@ -481,9 +481,15 @@ def label_bars(ax, total=None, pct=False, fmt="{:g}", fontsize=11.5,
 # Charts
 # --------------------------------------------------------------------------
 def bars(labels, values, ax=None, color=None, horizontal=None, label=True,
-         fmt="{:g}", sort=True, width=0.62):
-    """One series of categories. Flips horizontal when the names are long."""
-    labels = [tidy(l) for l in labels]
+         fmt="{:g}", sort=True, width=0.62, clean=True):
+    """One series of categories. Flips horizontal when the names are long.
+
+    ``clean=False`` shows the labels exactly as given. Use it whenever the
+    labels are data rather than field names - a person's name, an account, a
+    place. tidy() de-shouts an all-capitals string, which is right for a
+    column heading and wrong for "CCM PATANDI".
+    """
+    labels = [tidy(l) for l in labels] if clean else [str(l) for l in labels]
     values = list(values)
     if sort:
         order = np.argsort(values)[::-1]
@@ -855,14 +861,19 @@ def scatter(df, x, y, hue=None, ax=None, cols=None, fit=False, size=46):
 
 
 def heatmap(matrix, ax=None, ramp="blue", fmt="{:.2f}", diverging=None,
-            cbar=True, labels=True, order=True):
+            cbar=True, labels=True, order=True, clean=True):
     """A matrix - correlations, or a cross-tab. One hue, light to dark.
 
     A cross-tab of survey answers arrives in alphabetical order, which puts
     "Strongly agree" between "Disagree" and "Strongly disagree"; `order=True`
     restores the scale. Pass `order=False` to keep the matrix as given, which
     is what you want for a correlation matrix.
+
+    ``clean=False`` leaves the row and column names exactly as given, for the
+    same reason bars() has it: tidy() de-shouts a long all-capitals string, so
+    a set of party acronyms comes back as CCM, ACT and "Chadema".
     """
+    name_of = (lambda v: tidy(v)) if clean else (lambda v: str(v))
     m = matrix if isinstance(matrix, pd.DataFrame) else pd.DataFrame(matrix)
     if order:
         m = m.reindex(index=scale_order(m.index),
@@ -877,9 +888,9 @@ def heatmap(matrix, ax=None, ramp="blue", fmt="{:.2f}", diverging=None,
                    vmin=-vmax if diverging else None,
                    vmax=vmax if diverging else None)
     ax.set_xticks(range(len(m.columns)))
-    ax.set_xticklabels([wrap(tidy(c), 12) for c in m.columns])
+    ax.set_xticklabels([wrap(name_of(c), 12) for c in m.columns])
     ax.set_yticks(range(len(m.index)))
-    ax.set_yticklabels([tidy(i) for i in m.index])
+    ax.set_yticklabels([name_of(i) for i in m.index])
     ax.tick_params(length=0)
     for s in ax.spines.values():
         s.set_visible(False)
