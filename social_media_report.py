@@ -24,9 +24,10 @@ A sheet written by hand, in sections, one section per platform::
 
 Every section names its columns differently - "Number of Followers", "Number
 of members", "subscribers" - and the party is written once, on the row where
-it starts. Both are handled: sections are found by the bare name in the first
-column, the party is carried down the rows, and the audience column is
-whatever the section calls it.
+it starts. Both are handled: a section begins at its header row, the platform
+is read from the banner above it or from the account column's own name, the
+party is carried down the rows, and the audience column is whatever the
+section calls it.
 
 That is the whole reason this module exists in the shape it does. Reading the
 same sheet by position - ``df.loc[134:145]`` - works exactly until somebody
@@ -45,8 +46,11 @@ if not any(n in globals() for n in _needed):
 
 import base64
 import datetime
+import io
 import re
 import unicodedata
+import urllib.parse
+import urllib.request
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -121,67 +125,100 @@ def canonical(text, aliases):
     return aliases.get(key, clean_text(text).upper() if text else "")
 
 
-# --- read the sheet exactly as it was typed --------------------------------
-if "CSV_URL" in globals():
-    raw = pd.read_csv(CSV_URL, header=None, dtype=object)
-else:
-    raw = pd.read_csv(
-        "https://docs.google.com/spreadsheets/export?id=%s&exportFormat=csv"
-        % SHEET_ID, header=None, dtype=object)
+# --- read the sheet --------------------------------------------------------
+# Not the /export endpoint. It answers with a 307 to
+# doc-NN-NN-sheets.googleusercontent.com, which a SageMathCell kernel cannot
+# reach ("Network is unreachable") - and pandas' own fetch has no timeout, so
+# the cell does not fail, it hangs until the kernel is killed. The gviz
+# endpoint is served from docs.google.com itself and needs no redirect.
+#
+# gviz has a cost of its own: it decides a type per column and blanks any
+# cell that disagrees, so text sitting in a mostly-numeric column disappears
+# - which is exactly what happens to the FACEBOOK / Twitter / Youtube banners
+# in column B. Nothing below depends on them.
+def _fetch():
+    if "CSV_URL" in globals():
+        return pd.read_csv(io.BytesIO(urllib.request.urlopen(CSV_URL).read()),
+                           header=None, dtype=object)
+    url = ("https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+           "/gviz/tq?tqx=out:csv&headers=0")
+    if globals().get("SHEET_NAME"):
+        url += "&sheet=" + urllib.parse.quote(SHEET_NAME)
+    return pd.read_csv(io.BytesIO(urllib.request.urlopen(url).read()),
+                       header=None, dtype=object)
 
+
+raw = _fetch()
 raw = raw.map(clean_text) if hasattr(raw, "map") else raw.applymap(clean_text)
+
+PARTY_HEADS = ("party",)
+ACCOUNT_COL, PARTY_COL, SN_COL = 3, 2, 1
 
 
 def is_header_row(row):
-    """The row that names the columns - it is the one that says SN."""
-    return clean_text(row.iloc[1]).upper().startswith("SN")
+    """The row that names the columns.
 
-
-def section_starts(frame):
-    """Rows carrying a bare platform name and nothing else.
-
-    Not "the first column": whoever typed this sheet put Instagram in column
-    A and FACEBOOK, Twitter and Youtube in column B. What the four rows do
-    have in common is that the platform name is the only thing on the row, so
-    that is what is tested - one non-empty cell, no digits in it, and not the
-    SN that starts a header row.
+    Keyed on the two cells that survive every version of this sheet: a party
+    heading in column C and an account heading in column D. The old test -
+    "column B says SN" - reads the export CSV and not the gviz one, where the
+    SN heading sits in a numeric column and is thrown away.
     """
-    marks = []
-    for i in frame.index:
-        filled = [v for v in (frame.at[i, c] for c in frame.columns) if v]
-        if len(filled) != 1:
-            continue
-        text = filled[0]
-        if any(ch.isdigit() for ch in text):
-            continue
-        if text.upper().startswith("SN"):
-            continue
-        marks.append((i, text))
-    return marks
+    party_head = clean_text(row.iloc[PARTY_COL]).lower()
+    account_head = clean_text(row.iloc[ACCOUNT_COL]).lower()
+    return (any(w in party_head for w in PARTY_HEADS)
+            and account_head.startswith("name of"))
+
+
+def platform_of(header, banner, order):
+    """What platform is this section about?
+
+    Three sources, best first: a banner row of its own above the header;
+    the name of the account column, which says "Name of facebook Account";
+    and failing both, its position in the sheet.
+    """
+    if banner:
+        key = clean_text(banner).upper()
+        if key in PLATFORM_ALIASES:
+            return PLATFORM_ALIASES[key]
+    text = " ".join(header).lower()
+    for key, name in PLATFORM_ALIASES.items():
+        if key.lower() in text:
+            return name
+    if "channel" in text:                  # "Name of y channel"
+        return "YouTube"
+    if banner:
+        return clean_text(banner)
+    return "Section %d" % (order + 1)
+
+
+def banner_above(frame, at):
+    """A row just above the header holding one word and nothing else."""
+    for j in range(at - 1, max(at - 4, frame.index[0]) - 1, -1):
+        filled = [v for v in (frame.at[j, c] for c in frame.columns) if v]
+        if len(filled) == 1 and not any(ch.isdigit() for ch in filled[0]):
+            return filled[0]
+        if filled:
+            return ""
+    return ""
 
 
 records = []
 skipped = 0
-marks = section_starts(raw)
-if not marks:
+heads = [i for i in raw.index if is_header_row(raw.loc[i])]
+if not heads:
     raise ValueError(
-        "No platform sections found. This module expects a bare platform "
-        "name alone on a row (Instagram, Facebook, ...) above each block.")
+        "No section headers found. Each block of accounts must begin with a "
+        "row naming its columns - a party heading in column C and an account "
+        "heading in column D, such as 'Party | Name of facebook Account'.")
 
-for order, (start, name) in enumerate(marks):
-    end = marks[order + 1][0] if order + 1 < len(marks) else raw.index[-1] + 1
-    platform = PLATFORM_ALIASES.get(clean_text(name).upper(), clean_text(name))
-
-    block = raw.loc[start + 1:end - 1]
-    heads = [i for i in block.index if is_header_row(block.loc[i])]
-    if not heads:
-        continue
-    head_at = heads[0]
-    header = [clean_text(v) for v in block.loc[head_at]]
+for order, head_at in enumerate(heads):
+    end = heads[order + 1] if order + 1 < len(heads) else raw.index[-1] + 1
+    header = [clean_text(v) for v in raw.loc[head_at]]
+    platform = platform_of(header, banner_above(raw, head_at), order)
 
     # Which column holds the audience, and which the activity? Ask the header
-    # rather than assuming a position, so a section with an extra column or a
-    # renamed one still lands in the right place.
+    # where it survived; fall back on position, which is the same in every
+    # section of this sheet - account, then audience, then activity.
     audience_col = activity_col = None
     for pos, label in enumerate(header):
         low = label.lower()
@@ -189,11 +226,17 @@ for order, (start, name) in enumerate(marks):
             audience_col = pos
         if activity_col is None and any(w in low for w in ACTIVITY_WORDS):
             activity_col = pos
-    audience_name = header[audience_col] if audience_col is not None else "Followers"
+    if audience_col is None:
+        audience_col = ACCOUNT_COL + 1
+    if activity_col is None and ACCOUNT_COL + 2 < len(header):
+        activity_col = ACCOUNT_COL + 2
+    audience_name = (header[audience_col]
+                     if audience_col is not None and header[audience_col]
+                     else "Followers")
 
     party = ""
-    for i in block.loc[head_at + 1:].index:
-        row = block.loc[i]
+    for i in raw.loc[head_at + 1:end - 1].index:
+        row = raw.loc[i]
         if is_header_row(row):                       # a repeated header
             continue
         # The party is normally in column C, with the serial number in B. In
@@ -237,12 +280,49 @@ PLATFORM_ORDER += [p for p in dict.fromkeys(data["Platform"])
 PARTY_ORDER = (data.groupby("Party")["Followers"].sum()
                .sort_values(ascending=False).index.tolist())
 
+def named_party(account):
+    """The party an account names itself after, if it names one at all."""
+    tokens = re.findall(r"[A-Za-z]+", account.upper())[:2]
+    for t in tokens:
+        if t in PARTY_ALIASES:
+            return PARTY_ALIASES[t]
+    return None
+
+
+# --- does the label agree with the name? -----------------------------------
+# A party label is written once and carried down the rows, so a single
+# mislaid label silently re-assigns everything under it. Worse, the gviz
+# endpoint types each column and deletes text that lands in a numeric one:
+# where a label was typed into the SN column instead of the party column, it
+# does not arrive at all and the block joins the party above it.
+#
+# So check the labels against the names. "ACT Wazalendo Tanga" filed under CCM
+# is not proof of an error - a party may run an account about a rival - but 23
+# of them in a row is.
+data["Named"] = [named_party(a) for a in data["Account"]]
+mismatch = data[data["Named"].notna() & (data["Named"] != data["Party"])]
+
 print("Read %d accounts: %d parties across %d platforms."
       % (len(data), data["Party"].nunique(), data["Platform"].nunique()))
 print("Platforms: %s" % ", ".join(PLATFORM_ORDER))
 print("Parties:   %s" % ", ".join(PARTY_ORDER))
 if skipped:
     print("Skipped %d rows with no account name." % skipped)
+
+if len(mismatch):
+    print("")
+    print("!! %d accounts are filed under a party their own name contradicts."
+          % len(mismatch))
+    for (plat, was, named), grp in mismatch.groupby(
+            ["Platform", "Party", "Named"]):
+        print("   %-10s %-8s named after %-8s x%-3d  e.g. %s"
+              % (plat, was, named, len(grp), grp["Account"].iloc[0]))
+    print("   A party label is written once and carried down the rows, so one")
+    print("   label in the wrong cell moves every account beneath it. Check")
+    print("   that each label sits in the party column, not the SN column -")
+    print("   read through gviz, text in a numeric column is dropped and the")
+    print("   block silently joins the party above it. Passing CSV_URL with an")
+    print("   exported copy of the sheet avoids that entirely.")
 
 # --- the slice the cell asked for ------------------------------------------
 sel = data
@@ -546,7 +626,8 @@ with open("Social_Media_Report.html", "w", encoding="utf-8") as fh:
     fh.write(doc)
 HTML(string=doc).write_pdf("Social_Media_Report.pdf")
 
-data.to_csv("Social_Media_Accounts.csv", index=False)
+data.drop(columns=["Named"]).to_csv("Social_Media_Accounts.csv",
+                                    index=False)
 party_summary.to_csv("Party_Summary.csv", index=False)
 
 print("")
