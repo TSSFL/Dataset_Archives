@@ -257,6 +257,11 @@ def tidy(name, max_words=None):
         parts = s.split(" ")
         if len(parts) > max_words:
             s = " ".join(parts[:max_words]) + "..."
+    # A name that carries a capital of its own - "pH", "mRNA", "EC", a
+    # chemical symbol - is already written the way its field writes it.
+    # Only capitalise what is plainly a lower-case phrase.
+    if s[1:] != s[1:].lower():
+        return s
     return s[:1].upper() + s[1:] if s else s
 
 
@@ -930,13 +935,18 @@ def boxes(df, columns=None, by=None, ax=None, cols=None):
         columns = list(columns or df.select_dtypes("number").columns)
         data = [df[c].dropna().values for c in columns]
         names = [tidy(c) for c in columns]
-    spans = [float(np.nanmax(d)) - float(np.nanmin(d)) for d in data if len(d)]
-    if spans and max(spans) > 100 * max(min(spans), 1e-9):
-        import warnings
-        warnings.warn(
-            "these columns differ by more than 100x in range - on one axis "
-            "the small ones collapse to a line. Use panels(), or plot them "
-            "separately.", stacklevel=2)
+        # Only a concern when the boxes are different variables sharing one
+        # axis. With `by`, every box is the same variable in a different
+        # group, and one group being far tighter than another is the finding,
+        # not a scale problem.
+        spans = [float(np.nanmax(d)) - float(np.nanmin(d))
+                 for d in data if len(d)]
+        if spans and max(spans) > 100 * max(min(spans), 1e-9):
+            import warnings
+            warnings.warn(
+                "these columns differ by more than 100x in range - on one "
+                "axis the small ones collapse to a line. Use panels(), or "
+                "plot them separately.", stacklevel=2)
     cols = cols or colors(len(data))
     if ax is None:
         _, ax = figure(max(8.0, 1.5 * len(data) + 3.0), 5.8)
