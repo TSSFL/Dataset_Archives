@@ -925,7 +925,14 @@ forms = [html for pieces in by_student.values() for html in pieces]
 forms_doc = forms_document(forms, "%s - assessment forms" % TITLE)
 with open("TP_Student_Reports.html", "w", encoding="utf-8") as fh:
     fh.write(forms_doc)
-HTML(string=forms_doc).write_pdf("TP_Student_Reports.pdf")
+
+# Laid out once and kept. Laying the forms out is nearly all of the cost -
+# fonts, CSS, page breaks - and the individual files below are cut from this
+# same layout rather than rendered again. Seventeen fresh renders cost over
+# two minutes on a SageMathCell and killed the kernel; reusing the layout
+# costs almost nothing.
+rendered = HTML(string=forms_doc).render()
+rendered.write_pdf("TP_Student_Reports.pdf")
 print("Wrote TP_Student_Reports.pdf - %d assessment forms for %d students."
       % (len(forms), len(clean)))
 
@@ -952,12 +959,26 @@ if INDIVIDUAL_FORMS:
 
     folder = "TP_Individual_Forms"
     os.makedirs(folder, exist_ok=True)
+
+    # Each form is written to fill exactly one page. When that holds, the
+    # merged layout can simply be cut into per-student files. When it does
+    # not - a form that overflows would shift every student after it onto
+    # somebody else's page - fall back to rendering each one properly rather
+    # than hand out the wrong marks.
+    pages = rendered.pages
+    aligned = len(pages) == len(forms)
+
     written = []
+    at = 0
     for reg, pieces in by_student.items():
         name = "TP_%s.pdf" % safe_name(reg)
         path = os.path.join(folder, name)
-        HTML(string=forms_document(
-            pieces, "%s - %s" % (TITLE, reg))).write_pdf(path)
+        if aligned:
+            rendered.copy(pages[at:at + len(pieces)]).write_pdf(path)
+        else:
+            HTML(string=forms_document(
+                pieces, "%s - %s" % (TITLE, reg))).write_pdf(path)
+        at += len(pieces)
         written.append((reg, name, len(pieces)))
 
     archive = folder + ".zip"
