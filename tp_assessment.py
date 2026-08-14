@@ -353,6 +353,19 @@ def get(row, frame, *candidates):
     return str(value).strip()
 
 
+def rnd(value, places=0):
+    """round(), guaranteed to give back a plain Python float.
+
+    This file is exec'd into the namespace it is loaded into, and on a
+    SageMathCell that namespace has Sage's round(), which returns a
+    RealDoubleElement. pandas keeps those in an object column, and an object
+    column cannot be rounded, histogrammed or written out as a number - the
+    totals come back as NaN with no warning. Every number the frame holds
+    goes through here.
+    """
+    return float(np.round(float(value), places))
+
+
 def prettify(value):
     """Underscored form values as written English: B.Ed._Sc._ -> B.Ed. Sc."""
     text = str(value).replace("_", " ")
@@ -606,7 +619,7 @@ for reg in sorted({v["reg"] for v in visits}):
     for s_i, (subject, group) in enumerate(list(by_subject.items())[:2], start=1):
         record["Subj %d" % s_i] = subject
         for a_i, v in enumerate(group[:MAX_VISITS], start=1):
-            record["Subj %d Ass %d" % (s_i, a_i)] = round(v["percent"], 1)
+            record["Subj %d Ass %d" % (s_i, a_i)] = rnd(v["percent"], 1)
             record["Subj %d Ass %d date" % (s_i, a_i)] = (
                 "" if pd.isna(v["date"]) else v["date"].strftime("%d/%m/%Y"))
     # Every item's mark, averaged over the student's visits, so the clean
@@ -614,12 +627,12 @@ for reg in sorted({v["reg"] for v in visits}):
     for key in assessed_keys:
         got = [v["marks"][key] for v in mine if key in v["marks"]]
         record["Score %s %s" % (key, ITEM_TEXT[key][:40])] = (
-            round(float(np.mean(got)), 2) if got else np.nan)
+            rnd(np.mean(got), 2) if got else np.nan)
     for name, _, items in TEMPLATE:
         got = [v["marks"][k] for v in mine for k, _ in items if k in v["marks"]]
-        record[name] = round(float(np.mean(got)), 2) if got else np.nan
+        record[name] = rnd(np.mean(got), 2) if got else np.nan
     marks = [v["percent"] for v in mine]
-    record["AVR(P&T)"] = round(float(np.mean(marks)), 2)
+    record["AVR(P&T)"] = rnd(np.mean(marks), 2)
     students.append(record)
 
 clean = pd.DataFrame(students)
@@ -751,7 +764,7 @@ def scale_html(mark):
     """0 1 2 3 4 with the awarded one circled, as the printed form asks."""
     out = []
     for digit in range(MAX_PER_ITEM + 1):
-        hit = mark is not None and int(round(mark)) == digit
+        hit = mark is not None and int(rnd(mark)) == digit
         out.append('<span class="digit%s">%d</span>'
                    % (" circled" if hit else "", digit))
     return "".join(out)
