@@ -91,6 +91,9 @@ SUPERVISOR = globals().get("SUPERVISOR", "")
 SUPERVISOR_CAMPUS = globals().get("SUPERVISOR_CAMPUS", "")
 REGION_LABEL = globals().get("REGION_LABEL", "")
 PASS_MARK = float(globals().get("PASS_MARK", 40.0))
+# One PDF per student as well as the merged one. Turn it off for a large
+# cohort - it is the slowest step in the module.
+INDIVIDUAL_FORMS = bool(globals().get("INDIVIDUAL_FORMS", True))
 MAX_PER_ITEM = 4                       # the printed form scores 0-4 per item
 MAX_VISITS = 3                         # the results sheet has room for three
 
@@ -903,20 +906,73 @@ def form_html(visit, index, of):
     return "".join(got)
 
 
-forms = []
+def forms_document(pieces, title):
+    return ("<html><head><meta charset='utf-8'><title>%s</title>"
+            "<style>%s</style></head><body>%s</body></html>"
+            % (esc(title), FORM_CSS, "".join(pieces)))
+
+
+# Grouped by student, because that is the unit a form belongs to: one student
+# may have been observed more than once, and those visits belong together.
+by_student = {}
 for reg in sorted({v["reg"] for v in visits}):
     mine = [v for v in visits if v["reg"] == reg]
-    for i, visit in enumerate(mine, start=1):
-        forms.append(form_html(visit, i, len(mine)))
+    by_student[reg] = [form_html(visit, i, len(mine))
+                       for i, visit in enumerate(mine, start=1)]
 
-forms_doc = ("<html><head><meta charset='utf-8'><title>%s - assessment forms"
-             "</title><style>%s</style></head><body>%s</body></html>"
-             % (esc(TITLE), FORM_CSS, "".join(forms)))
+forms = [html for pieces in by_student.values() for html in pieces]
+
+forms_doc = forms_document(forms, "%s - assessment forms" % TITLE)
 with open("TP_Student_Reports.html", "w", encoding="utf-8") as fh:
     fh.write(forms_doc)
 HTML(string=forms_doc).write_pdf("TP_Student_Reports.pdf")
 print("Wrote TP_Student_Reports.pdf - %d assessment forms for %d students."
       % (len(forms), len(clean)))
+
+
+# --- and again, one file per student -----------------------------------
+# The merged PDF is for the supervisor's file. A student is sent a form, not
+# a class list - so write each student's own, which is also what stops one
+# student's marks from reaching another. Set INDIVIDUAL_FORMS = False in the
+# cell for a large cohort, where rendering one PDF per student is the slowest
+# thing the module does.
+if INDIVIDUAL_FORMS:
+    import zipfile
+
+    def safe_name(text):
+        """A registration number as a filename.
+
+        Registration numbers carry slashes, which would silently make
+        directories. Nothing but the reg number goes in the name: the file
+        list is the most public part of a run, and a student's name does not
+        need to be in it to route the form correctly.
+        """
+        keep = re.sub(r"[^A-Za-z0-9._-]+", "-", text).strip("-")
+        return keep or "unknown"
+
+    folder = "TP_Individual_Forms"
+    os.makedirs(folder, exist_ok=True)
+    written = []
+    for reg, pieces in by_student.items():
+        name = "TP_%s.pdf" % safe_name(reg)
+        path = os.path.join(folder, name)
+        HTML(string=forms_document(
+            pieces, "%s - %s" % (TITLE, reg))).write_pdf(path)
+        written.append((reg, name, len(pieces)))
+
+    archive = folder + ".zip"
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+        for _, name, _ in written:
+            zf.write(os.path.join(folder, name), name)
+
+    index = pd.DataFrame(
+        [{"Registration Number": reg, "File": name, "Forms": n}
+         for reg, name, n in written])
+    index.to_csv("TP_Individual_Forms.csv", index=False)
+
+    print("Wrote %s - %d individual forms, one per student, %.0f KB."
+          % (archive, len(written), os.path.getsize(archive) / 1024.0))
+    print("Wrote TP_Individual_Forms.csv - which file belongs to whom.")
 
 
 # =======================================================================
